@@ -21,16 +21,23 @@ export default function EnterPage() {
     e.preventDefault();
     setError(null);
     setBusy(true);
-    const { status, data } = await api<{ ok: boolean; name?: string }>("/api/login", {
-      method: "POST",
-      body: { name },
-    });
-    setBusy(false);
-    if (status === 200 && data.ok && data.name) {
-      saveName(data.name);
-      router.replace("/field");
-    } else {
-      setError("명단에 없는 이름입니다");
+    try {
+      const { status, data } = await api<{ ok: boolean; name?: string }>("/api/login", {
+        method: "POST",
+        body: { name },
+      });
+      if (status === 200 && data.ok && data.name) {
+        saveName(data.name);
+        router.replace("/field");
+      } else if (status === 404) {
+        setError("명단에 없는 이름입니다");
+      } else if (status === 0) {
+        setError("연결에 실패했어요. 잠시 후 다시 시도해주세요");
+      } else {
+        setError("일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요");
+      }
+    } finally {
+      setBusy(false);
     }
   }
 

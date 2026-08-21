@@ -25,21 +25,34 @@ export function clearName(): void {
   }
 }
 
+/**
+ * Typed fetch wrapper that never throws.
+ *
+ * Returns {status, data} where:
+ * - status: HTTP status code from server (200, 404, 500, etc)
+ * - status 0: network/transport failure (fetch rejected, DNS failed, offline, etc)
+ * - data: parsed JSON response, or {} if parse fails or transport failed
+ */
 export async function api<T>(
   path: string,
   init?: { method?: "GET" | "POST"; body?: unknown }
 ): Promise<{ status: number; data: T }> {
-  const res = await fetch(path, {
-    method: init?.method ?? "GET",
-    headers: init?.body !== undefined ? { "content-type": "application/json" } : undefined,
-    body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
-    cache: "no-store",
-  });
-  let data: T;
   try {
-    data = (await res.json()) as T;
+    const res = await fetch(path, {
+      method: init?.method ?? "GET",
+      headers: init?.body !== undefined ? { "content-type": "application/json" } : undefined,
+      body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+      cache: "no-store",
+    });
+    let data: T;
+    try {
+      data = (await res.json()) as T;
+    } catch {
+      data = {} as T;
+    }
+    return { status: res.status, data };
   } catch {
-    data = {} as T;
+    // 네트워크 실패 — 서버에 닿지 못함
+    return { status: 0, data: {} as T };
   }
-  return { status: res.status, data };
 }
