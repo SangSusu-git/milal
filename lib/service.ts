@@ -220,6 +220,7 @@ export async function decide(
 
 /** 최근 반영 기록, 최신순 */
 export async function recentLedger(store: Store, limit: number): Promise<LedgerEntry[]> {
+  if (limit <= 0) return [];
   const ledger = await getLedger(store);
   return ledger.slice(-limit).reverse();
 }

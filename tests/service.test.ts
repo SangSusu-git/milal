@@ -181,6 +181,11 @@ describe("requests & decide", () => {
     expect(recent).toHaveLength(1);
     expect(recent[0]).toMatchObject({ name: OTHER, kind: "bible" });
   });
+
+  it("recentLedger(store, 0)은 원장이 비어있지 않아도 빈 배열", async () => {
+    await check(store, USER, "bible", DAY1);
+    expect(await recentLedger(store, 0)).toEqual([]);
+  });
 });
 
 describe("setTotalDev", () => {
