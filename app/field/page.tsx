@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import WheatScene from "@/components/WheatScene";
 import ProgressCard from "@/components/ProgressCard";
@@ -13,9 +13,16 @@ import type { CheckKind, FieldState, RequestKind } from "@/lib/types";
 
 const REFRESH_MS = 30_000;
 
+// 저장된 이름은 이 페이지가 살아 있는 동안 바뀌지 않으므로 구독은 no-op이다.
+const subscribeToName = () => () => {};
+
 export default function FieldPage() {
   const router = useRouter();
-  const [name] = useState<string | null>(() => getSavedName());
+  const name = useSyncExternalStore(
+    subscribeToName,
+    () => getSavedName(), // 클라이언트 스냅샷
+    () => null // 서버 스냅샷 — SSR/하이드레이션 불일치를 React가 처리한다
+  );
   const [state, setState] = useState<FieldState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [busyCheck, setBusyCheck] = useState<CheckKind | null>(null);
