@@ -1,26 +1,106 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --soil: #7c4a2d;
+  --soil-light: #a66a43;
+  --wheat: #e0a53a;
+  --wheat-deep: #b97a1e;
+  --leaf: #5aa84a;
+  --leaf-deep: #2f7a3a;
+  --sky: #cfe8ff;
+  --cream: #fff8ec;
+  --ink: #3b2a1e;
+  --muted: #8a7461;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 50% -200px, #fff3d6 0%, transparent 70%),
+    linear-gradient(180deg, #f7efe2 0%, #efe3cf 100%);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(124, 74, 45, 0.1);
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 30px -18px rgba(59, 42, 30, 0.35);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 1rem;
+  font-weight: 600;
+  padding: 0.9rem 1.1rem;
+  transition: transform 0.08s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  touch-action: manipulation;
+  user-select: none;
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: linear-gradient(180deg, var(--wheat) 0%, var(--wheat-deep) 100%);
+  color: #fff;
+  box-shadow: 0 8px 18px -8px rgba(185, 122, 30, 0.7);
+}
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(124, 74, 45, 0.18);
+  color: var(--ink);
+}
+.btn-done {
+  background: #eef7ea;
+  border: 1px solid #cfe7c8;
+  color: var(--leaf-deep);
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-1.6deg); }
+  50% { transform: rotate(1.6deg); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(0); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-28px); }
+}
+
+.sway { animation: sway 4.5s ease-in-out infinite; transform-origin: 50% 100%; transform-box: fill-box; }
+.twinkle { animation: twinkle 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+.pop { animation: pop 0.4s ease-out; }
+.fade-up { animation: fade-up 0.45s ease-out both; }
+.float-up { animation: float-up 1.1s ease-out forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sway, .twinkle, .pop, .fade-up, .float-up { animation: none; }
 }
