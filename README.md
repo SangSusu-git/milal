@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 밀알 (Milal)
 
-## Getting Started
+한 알의 밀이 땅에 떨어져 — 30명이 함께 키우는 공동체 밀알.
+매일 성경읽기·다짐 체크와 기도부탁·권유 활동으로 포인트를 모아 하나의 밀알을 결실까지 키웁니다.
 
-First, run the development server:
+설계: `docs/superpowers/specs/2026-08-21-milal-design.md`
+
+## 실행
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
+npm test           # 규칙·저장소·서비스 단위 테스트
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+로컬 데이터는 `data/` 폴더의 JSON 파일에 저장됩니다 (git 제외). 초기화하려면 폴더를 지우세요.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 테스트 명단
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+처음 실행하면 `lib/members.ts`의 30명이 `data/members.json`에 저장됩니다. 첫 번째 `김은혜`가 관리자입니다.
+개발 모드의 입장 화면에서 "테스트 명단 보기"로 이름을 고를 수 있습니다.
 
-## Learn More
+실제 명단으로 바꾸려면 `data/members.json`을 직접 편집하세요:
 
-To learn more about Next.js, take a look at the following resources:
+```json
+[
+  { "name": "홍길동", "isAdmin": true },
+  { "name": "김철수", "isAdmin": false }
+]
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 수동 테스트 순서
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. 명단에 없는 이름 → "명단에 없는 이름입니다"
+2. 일반 구성원으로 입장 → 1단계 씨앗, 0점
+3. 📖 / ✅ 클릭 → +1씩, 버튼은 "내일 다시"로. 새로고침해도 유지
+4. 🙏 / 💬 / 🤝 요청 → "대기 중 N건"
+5. 관리자(⭐)로 입장 → "관리" → 승인/거절 → 총점 반영 → 최근 반영 기록 20건 확인
+6. 관리 화면의 점수 조정 0 / 200 / 400 / 700 / 1000 → 5단계 장면 확인 (`/dev/scene`에서 한 번에 보기)
+7. 같은 Wi-Fi 휴대폰에서 `http://<맥 IP>:3000` 접속 (맥 IP: `ipconfig getifaddr en0`)
 
-## Deploy on Vercel
+## 규칙 요약
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- 날짜는 한국시간(Asia/Seoul) 기준. 자정에 새 날
+- 성경 +1, 다짐 +1 (각각 하루 1회) · 기도부탁 +3 · 비대면 권유 +5 · 대면 권유 +7 (관리자 승인 시)
+- 단계: 0–199 / 200–399 / 400–699 / 700–999 / 1000+
+- 총점은 `data/ledger.json`의 합
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 배포 (나중에)
+
+Vercel에 이 레포를 연결하고 Vercel Blob 스토어를 추가하면 `BLOB_READ_WRITE_TOKEN`이 자동 주입되어 저장소가 Blob으로 전환됩니다.
+자세한 절차는 구현 완료 후 별도 안내.
