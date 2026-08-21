@@ -66,14 +66,31 @@ describe("file store", () => {
 
   it("사람이 읽을 수 있는 JSON 파일로 저장한다", async () => {
     const store = createFileStore(dir);
-    await store.set("checks/홍길동", { a: 1 });
+    const value = { a: 1 };
+    await store.set("checks/홍길동", value);
     const text = readFileSync(join(dir, "checks__홍길동.json"), "utf8");
-    expect(JSON.parse(text)).toEqual({ a: 1 });
-    expect(text).toContain("\n"); // pretty-printed
+    expect(JSON.parse(text)).toEqual(value);
+    expect(text).toBe(JSON.stringify(value, null, 2) + "\n"); // pretty-printed with 2-space indent
   });
 
   it("같은 디렉터리의 새 인스턴스가 기존 파일을 읽는다", async () => {
     await createFileStore(dir).set("k", "v");
     expect(await createFileStore(dir).get("k")).toBe("v");
+  });
+
+  it("동시 쓰기 충돌시 두 쓰기 모두 성공하고 하나의 값이 저장된다", async () => {
+    const store = createFileStore(dir);
+    const value1 = { n: 1 };
+    const value2 = { n: 2 };
+    // 같은 키에 두 concurrent set() 호출 — 하나는 실패할 수도 있으므로 Promise.allSettled 사용
+    const results = await Promise.allSettled([
+      store.set("k", value1),
+      store.set("k", value2),
+    ]);
+    // 둘 다 성공해야 함 (collision-resistant temp filename 덕분)
+    expect(results).toEqual([{ status: "fulfilled" }, { status: "fulfilled" }]);
+    // 저장된 값은 둘 중 하나여야 함
+    const stored = await store.get<{ n: number }>("k");
+    expect([value1, value2]).toContainEqual(stored);
   });
 });

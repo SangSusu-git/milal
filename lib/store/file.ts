@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
 import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 import type { Store } from "./types";
 
 /** 키의 "/"를 "__"로 바꿔 한 디렉터리에 평평하게 저장한다. */
@@ -24,7 +25,7 @@ export function createFileStore(dir: string): Store {
     async set<T>(key: string, value: T): Promise<void> {
       await ready;
       const target = join(dir, fileNameFor(key));
-      const tmp = target + "." + process.pid + "." + Date.now() + ".tmp";
+      const tmp = target + "." + randomUUID() + ".tmp";
       await writeFile(tmp, JSON.stringify(value, null, 2) + "\n", "utf8");
       await rename(tmp, target); // 원자적 교체 — 쓰다 만 파일이 남지 않게
     },
