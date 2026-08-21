@@ -26,32 +26,32 @@ const SUN_POS: Record<Stage, { cx: number; cy: number; r: number }> = {
   5: { cx: 250, cy: 92, r: 40 },
 };
 
-function Seed({ x, y, rotate = -18, scale = 1 }: { x: number; y: number; rotate?: number; scale?: number }) {
+function Seed({ x, y, stage, rotate = -18, scale = 1 }: { x: number; y: number; stage: Stage; rotate?: number; scale?: number }) {
   return (
     <g transform={`translate(${x} ${y}) rotate(${rotate}) scale(${scale})`}>
-      <ellipse cx="0" cy="0" rx="14" ry="8.5" fill="url(#seedGrad)" stroke="#8c5a1e" strokeWidth="1.2" />
+      <ellipse cx="0" cy="0" rx="14" ry="8.5" fill={`url(#seedGrad-${stage})`} stroke="#8c5a1e" strokeWidth="1.2" />
       <path d="M -11 0 Q 0 -4 11 0" stroke="#8c5a1e" strokeWidth="1.1" fill="none" opacity="0.8" />
       <ellipse cx="-4" cy="-3" rx="4" ry="1.6" fill="#ffe7b0" opacity="0.7" />
     </g>
   );
 }
 
-function Sprout() {
+function Sprout({ stage }: { stage: Stage }) {
   return (
     <g className="sway">
       <path d="M 180 228 C 180 212, 181 198, 180 182" stroke="#4d9a3e" strokeWidth="4" strokeLinecap="round" fill="none" />
-      <path d="M 180 204 C 160 200, 150 186, 152 172 C 168 174, 180 188, 180 204 Z" fill="url(#leafGrad)" />
-      <path d="M 180 196 C 200 190, 212 176, 210 160 C 194 163, 181 178, 180 196 Z" fill="url(#leafGrad)" />
+      <path d="M 180 204 C 160 200, 150 186, 152 172 C 168 174, 180 188, 180 204 Z" fill={`url(#leafGrad-${stage})`} />
+      <path d="M 180 196 C 200 190, 212 176, 210 160 C 194 163, 181 178, 180 196 Z" fill={`url(#leafGrad-${stage})`} />
       <path d="M 180 204 C 168 196, 160 186, 154 174" stroke="#2f7a3a" strokeWidth="1" fill="none" opacity="0.5" />
       <path d="M 180 196 C 192 188, 202 176, 208 163" stroke="#2f7a3a" strokeWidth="1" fill="none" opacity="0.5" />
     </g>
   );
 }
 
-function Stalk({ x, height, golden, delay = 0 }: { x: number; height: number; golden: boolean; delay?: number }) {
+function Stalk({ x, height, golden, stage, delay = 0 }: { x: number; height: number; golden: boolean; stage: Stage; delay?: number }) {
   const top = 228 - height;
   const stem = golden ? "#c9952c" : "#4d9a3e";
-  const head = golden ? "url(#grainGold)" : "url(#grainGreen)";
+  const head = golden ? `url(#grainGold-${stage})` : `url(#grainGreen-${stage})`;
   const awn = golden ? "#b8842a" : "#6fb35c";
   const spikelets = Array.from({ length: 7 }, (_, i) => i);
   return (
@@ -103,45 +103,45 @@ export default function WheatScene({ stage, className }: { stage: Stage; classNa
       style={{ width: "100%", height: "auto", display: "block" }}
     >
       <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`sky-${stage}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={p.skyTop} />
           <stop offset="1" stopColor={p.skyBottom} />
         </linearGradient>
-        <radialGradient id="sunGlow">
+        <radialGradient id={`sunGlow-${stage}`}>
           <stop offset="0" stopColor={p.sunGlow} stopOpacity="0.95" />
           <stop offset="1" stopColor={p.sunGlow} stopOpacity="0" />
         </radialGradient>
-        <linearGradient id="seedGrad" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={`seedGrad-${stage}`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#f3c875" />
           <stop offset="1" stopColor="#b87a24" />
         </linearGradient>
-        <linearGradient id="leafGrad" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={`leafGrad-${stage}`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#8fd46f" />
           <stop offset="1" stopColor="#3f9a3b" />
         </linearGradient>
-        <linearGradient id="grainGreen" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={`grainGreen-${stage}`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#b7e39a" />
           <stop offset="1" stopColor="#5ea04e" />
         </linearGradient>
-        <linearGradient id="grainGold" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={`grainGold-${stage}`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#ffe39a" />
           <stop offset="1" stopColor="#d39a2e" />
         </linearGradient>
-        <linearGradient id="soil" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`soil-${stage}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={p.ground} />
           <stop offset="1" stopColor="#4e2d17" />
         </linearGradient>
-        <clipPath id="frame">
+        <clipPath id={`frame-${stage}`}>
           <rect x="0" y="0" width="360" height="300" rx="24" />
         </clipPath>
       </defs>
 
-      <g clipPath="url(#frame)">
+      <g clipPath={`url(#frame-${stage})`}>
         {/* 하늘 */}
-        <rect x="0" y="0" width="360" height="300" fill="url(#sky)" />
+        <rect x="0" y="0" width="360" height="300" fill={`url(#sky-${stage})`} />
 
         {/* 해 */}
-        <circle cx={sun.cx} cy={sun.cy} r={sun.r * 2.6} fill="url(#sunGlow)" />
+        <circle cx={sun.cx} cy={sun.cy} r={sun.r * 2.6} fill={`url(#sunGlow-${stage})`} />
         {stage === 1 &&
           Array.from({ length: 12 }, (_, i) => {
             const a = (i / 12) * Math.PI * 2;
@@ -161,7 +161,7 @@ export default function WheatScene({ stage, className }: { stage: Stage; classNa
         {/* 땅 — 심긴 이후엔 흙 단면을 보여준다 */}
         {buried ? (
           <>
-            <rect x="0" y="228" width="360" height="72" fill="url(#soil)" />
+            <rect x="0" y="228" width="360" height="72" fill={`url(#soil-${stage})`} />
             <path d="M 0 228 C 40 224, 80 232, 120 228 C 160 224, 200 232, 240 228 C 280 224, 320 232, 360 228 L 360 236 L 0 236 Z" fill={p.ground} />
             {[30, 95, 150, 210, 270, 330].map((x, i) => (
               <ellipse key={i} cx={x} cy={250 + (i % 3) * 12} rx="5" ry="2.6" fill="#3e2211" opacity="0.45" />
@@ -180,7 +180,7 @@ export default function WheatScene({ stage, className }: { stage: Stage; classNa
         {stage === 1 && (
           <>
             <ellipse cx="180" cy="232" rx="18" ry="4" fill="#000" opacity="0.18" />
-            <Seed x={180} y={222} />
+            <Seed x={180} y={222} stage={stage} />
           </>
         )}
 
@@ -188,7 +188,7 @@ export default function WheatScene({ stage, className }: { stage: Stage; classNa
         {stage === 2 && (
           <>
             <ellipse cx="180" cy="226" rx="22" ry="5" fill="#5e3a1f" opacity="0.9" />
-            <Seed x={180} y={252} rotate={-10} scale={0.95} />
+            <Seed x={180} y={252} stage={stage} rotate={-10} scale={0.95} />
             <circle cx="180" cy="252" r="22" fill="none" stroke="#c7a06f" strokeWidth="1" strokeDasharray="3 4" opacity="0.5" />
           </>
         )}
@@ -196,29 +196,29 @@ export default function WheatScene({ stage, className }: { stage: Stage; classNa
         {/* 3단계: 새싹 */}
         {stage === 3 && (
           <>
-            <Seed x={180} y={254} rotate={-10} scale={0.8} />
+            <Seed x={180} y={254} stage={stage} rotate={-10} scale={0.8} />
             <path d="M 180 246 C 182 240, 180 234, 180 228" stroke="#e7d9b8" strokeWidth="2" fill="none" opacity="0.8" />
-            <Sprout />
+            <Sprout stage={stage} />
           </>
         )}
 
         {/* 4단계: 자란 밀 (초록) */}
         {stage === 4 && (
           <>
-            <Stalk x={150} height={92} golden={false} delay={0.4} />
-            <Stalk x={180} height={118} golden={false} />
-            <Stalk x={210} height={98} golden={false} delay={0.9} />
+            <Stalk x={150} height={92} golden={false} stage={stage} delay={0.4} />
+            <Stalk x={180} height={118} golden={false} stage={stage} />
+            <Stalk x={210} height={98} golden={false} stage={stage} delay={0.9} />
           </>
         )}
 
         {/* 5단계: 결실 (황금) */}
         {stage === 5 && (
           <>
-            <Stalk x={120} height={96} golden delay={0.6} />
-            <Stalk x={150} height={116} golden delay={0.2} />
-            <Stalk x={180} height={134} golden />
-            <Stalk x={210} height={118} golden delay={0.8} />
-            <Stalk x={240} height={98} golden delay={0.4} />
+            <Stalk x={120} height={96} golden stage={stage} delay={0.6} />
+            <Stalk x={150} height={116} golden stage={stage} delay={0.2} />
+            <Stalk x={180} height={134} golden stage={stage} />
+            <Stalk x={210} height={118} golden stage={stage} delay={0.8} />
+            <Stalk x={240} height={98} golden stage={stage} delay={0.4} />
             <Sparkles />
           </>
         )}
