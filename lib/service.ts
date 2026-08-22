@@ -6,7 +6,6 @@ import type {
   DayCheck,
   FieldState,
   LedgerEntry,
-  MemberSummary,
   PendingRequest,
   RequestKind,
 } from "./types";
@@ -69,27 +68,25 @@ export async function getState(
   if (!me) return null;
 
   const today = todayKST(now);
-  const [ledger, requests] = await Promise.all([getLedger(store), getRequests(store)]);
+  const [ledger, requests, myChecks] = await Promise.all([
+    getLedger(store),
+    getRequests(store),
+    getChecks(store, me.name),
+  ]);
 
-  const pointsByName = new Map<string, number>();
-  for (const entry of ledger) {
-    pointsByName.set(entry.name, (pointsByName.get(entry.name) ?? 0) + entry.points);
-  }
-
-  const summaries: MemberSummary[] = await Promise.all(
-    members.map(async (m) => {
-      const day = (await getChecks(store, m.name))[today] ?? EMPTY_DAY;
-      return {
-        name: m.name,
-        points: pointsByName.get(m.name) ?? 0,
-        bible: day.bible,
-        resolve: day.resolve,
-      };
-    })
-  );
+  const myDay = myChecks[today] ?? EMPTY_DAY;
 
   const total = sumPoints(ledger);
-  const mine = summaries.find((s) => s.name === me.name)!;
+  const myPoints = ledger
+    .filter((entry) => entry.name === me.name)
+    .reduce((acc, entry) => acc + entry.points, 0);
+
+  const todayParticipants = new Set<string>();
+  for (const entry of ledger) {
+    if (entry.kind !== "bible" && entry.kind !== "resolve") continue;
+    if (todayKST(new Date(entry.at)) !== today) continue;
+    todayParticipants.add(entry.name);
+  }
 
   return {
     today,
@@ -98,12 +95,13 @@ export async function getState(
     me: {
       name: me.name,
       isAdmin: me.isAdmin,
-      bible: mine.bible,
-      resolve: mine.resolve,
+      points: myPoints,
+      bible: myDay.bible,
+      resolve: myDay.resolve,
       pendingCount: requests.filter((r) => r.name === me.name).length,
     },
-    members: summaries,
-    todayCount: summaries.filter((s) => s.bible || s.resolve).length,
+    memberCount: members.length,
+    todayCount: todayParticipants.size,
   };
 }
 

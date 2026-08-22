@@ -25,19 +25,57 @@ describe("getState", () => {
     expect(await getState(store, "홍길동", DAY1)).toBeNull();
   });
 
-  it("초기 상태는 0점 1단계, 30명 모두 0점", async () => {
+  it("초기 상태는 0점 1단계, 명단 수 30명", async () => {
     const s = (await getState(store, USER, DAY1))!;
     expect(s.today).toBe("2026-08-21");
     expect(s.total).toBe(0);
     expect(s.stage).toBe(1);
-    expect(s.me).toEqual({ name: USER, isAdmin: false, bible: false, resolve: false, pendingCount: 0 });
-    expect(s.members).toHaveLength(30);
-    expect(s.members.every((m) => m.points === 0 && !m.bible && !m.resolve)).toBe(true);
+    expect(s.me).toEqual({ name: USER, isAdmin: false, points: 0, bible: false, resolve: false, pendingCount: 0 });
+    expect(s.memberCount).toBe(30);
     expect(s.todayCount).toBe(0);
   });
 
   it("관리자는 isAdmin true", async () => {
     expect((await getState(store, ADMIN, DAY1))!.me.isAdmin).toBe(true);
+  });
+
+  it("다른 사람의 기여 점수는 응답에 담기지 않는다", async () => {
+    const s = (await getState(store, USER, DAY1))!;
+    expect("members" in s).toBe(false);
+  });
+
+  it("me.points는 본인의 기여만 합산한다", async () => {
+    await check(store, USER, "bible", DAY1); // USER +1
+    await check(store, OTHER, "bible", DAY1); // OTHER +1
+    await check(store, OTHER, "resolve", DAY1); // OTHER +1
+    const userState = (await getState(store, USER, DAY1))!;
+    const otherState = (await getState(store, OTHER, DAY1))!;
+    expect(userState.me.points).toBe(1);
+    expect(otherState.me.points).toBe(2);
+    expect(userState.total).toBe(3);
+  });
+
+  it("todayCount는 오늘 성경·다짐 중 하나라도 한 서로 다른 사람 수", async () => {
+    await check(store, USER, "bible", DAY1);
+    await check(store, USER, "resolve", DAY1); // 같은 사람, 두 항목 — 1명으로 집계
+    await check(store, OTHER, "bible", DAY1_LATE); // 같은 날, 다른 사람
+    const s = (await getState(store, USER, DAY1_LATE))!;
+    expect(s.todayCount).toBe(2);
+  });
+
+  it("todayCount는 어제 체크한 사람을 오늘로 세지 않는다", async () => {
+    await check(store, USER, "bible", DAY1); // 어제
+    await check(store, OTHER, "bible", DAY2); // 오늘
+    const s = (await getState(store, USER, DAY2))!;
+    expect(s.todayCount).toBe(1);
+  });
+
+  it("todayCount는 adjust 항목을 세지 않는다", async () => {
+    await check(store, USER, "bible", DAY1);
+    const before = (await getState(store, USER, DAY1))!.todayCount;
+    expect(await setTotalDev(store, ADMIN, 500, DAY1)).toEqual({ ok: true, total: 500 });
+    const after = (await getState(store, USER, DAY1))!.todayCount;
+    expect(after).toBe(before);
   });
 });
 
@@ -66,7 +104,7 @@ describe("check", () => {
     s = (await getState(store, USER, DAY1))!;
     expect(s.total).toBe(2);
     expect(s.me.resolve).toBe(true);
-    expect(s.members.find((m) => m.name === USER)!.points).toBe(2);
+    expect(s.me.points).toBe(2);
     expect(s.todayCount).toBe(1);
   });
 
@@ -92,7 +130,8 @@ describe("check", () => {
     const s = (await getState(store, USER, DAY1))!;
     expect(s.total).toBe(3);
     expect(s.todayCount).toBe(2);
-    expect(s.members.find((m) => m.name === OTHER)).toEqual({ name: OTHER, points: 2, bible: true, resolve: true });
+    const otherState = (await getState(store, OTHER, DAY1))!;
+    expect(otherState.me).toMatchObject({ points: 2, bible: true, resolve: true });
   });
 
   it("이름 앞뒤 공백은 같은 사람으로 본다", async () => {
@@ -151,8 +190,8 @@ describe("requests & decide", () => {
     const s = (await getState(store, USER, DAY1))!;
     expect(s.total).toBe(15);
     expect(s.me.pendingCount).toBe(0);
-    expect(s.members.find((m) => m.name === USER)!.points).toBe(8);
-    expect(s.members.find((m) => m.name === OTHER)!.points).toBe(7);
+    expect(s.me.points).toBe(8);
+    expect((await getState(store, OTHER, DAY1))!.me.points).toBe(7);
   });
 
   it("거절하면 0점이고 목록에서만 사라진다", async () => {
@@ -198,7 +237,7 @@ describe("setTotalDev", () => {
     expect(s.total).toBe(400);
     expect(s.stage).toBe(3);
     // 개인 기여 점수는 건드리지 않는다
-    expect(s.members.find((m) => m.name === USER)!.points).toBe(1);
+    expect(s.me.points).toBe(1);
     // 내려가는 조정도 가능
     expect(await setTotalDev(store, ADMIN, 0, DAY1)).toEqual({ ok: true, total: 0 });
     s = (await getState(store, USER, DAY1))!;

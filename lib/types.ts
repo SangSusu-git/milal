@@ -31,13 +31,6 @@ export interface LedgerEntry {
   points: number;
 }
 
-export interface MemberSummary {
-  name: string;
-  points: number;
-  bible: boolean;
-  resolve: boolean;
-}
-
 export interface FieldState {
   today: string;
   total: number;
@@ -45,10 +38,11 @@ export interface FieldState {
   me: {
     name: string;
     isAdmin: boolean;
+    points: number;
     bible: boolean;
     resolve: boolean;
     pendingCount: number;
   };
-  members: MemberSummary[];
+  memberCount: number;
   todayCount: number;
 }

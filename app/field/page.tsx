@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import WheatScene from "@/components/WheatScene";
+import ScoreGauge from "@/components/ScoreGauge";
 import ProgressCard from "@/components/ProgressCard";
 import CheckButtons from "@/components/CheckButtons";
 import RequestButtons from "@/components/RequestButtons";
-import MemberList from "@/components/MemberList";
 import { api, clearName, getSavedName } from "@/lib/client";
 import type { CheckKind, FieldState, RequestKind } from "@/lib/types";
 
@@ -179,10 +179,11 @@ export default function FieldPage() {
         </div>
       </header>
 
-      <section className="card relative overflow-hidden p-0">
-        <div key={stageKey} className="fade-up">
+      <section className="card relative flex overflow-hidden p-0">
+        <div key={stageKey} className="fade-up min-w-0 flex-1">
           <WheatScene stage={state.stage} />
         </div>
+        <ScoreGauge total={state.total} className="w-16 shrink-0 border-l border-[rgba(124,74,45,0.1)]" />
         {floating && (
           <span
             key={floating.id}
@@ -193,16 +194,14 @@ export default function FieldPage() {
         )}
       </section>
 
-      <ProgressCard total={state.total} stage={state.stage} />
+      <ProgressCard total={state.total} stage={state.stage} myPoints={state.me.points} />
 
       <CheckButtons bible={state.me.bible} resolve={state.me.resolve} busy={busyCheck} onCheck={onCheck} />
 
       <RequestButtons pendingCount={state.me.pendingCount} busy={busyRequest} onRequest={onRequest} />
 
-      <MemberList members={state.members} me={name} />
-
       <footer className="px-1 pt-2 text-center text-xs text-[var(--muted)]">
-        오늘 {state.todayCount}명 참여 · 누적 {state.total}점
+        오늘 {state.todayCount}/{state.memberCount}명 참여 · 누적 {state.total}점
       </footer>
 
       {toast && (

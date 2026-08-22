@@ -20,6 +20,10 @@ export default function EnterPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!name.trim()) {
+      setError("이름을 입력해주세요");
+      return;
+    }
     setBusy(true);
     try {
       const { status, data } = await api<{ ok: boolean; name?: string }>("/api/login", {
@@ -42,7 +46,7 @@ export default function EnterPage() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-8 py-12">
+    <main className="flex min-h-dvh flex-col items-center gap-8 pt-16 pb-12">
       <div className="text-center fade-up">
         <div className="mx-auto mb-5 h-24 w-24 rounded-full bg-gradient-to-b from-[#ffe6a8] to-[#e0a53a] shadow-[0_20px_40px_-20px_rgba(185,122,30,0.8)]" />
         <h1 className="text-4xl font-extrabold tracking-tight">밀알</h1>
@@ -63,10 +67,16 @@ export default function EnterPage() {
           onChange={(e) => setName(e.target.value)}
           placeholder="명단에 있는 이름을 입력하세요"
           autoComplete="off"
+          enterKeyHint="go"
           className="mt-2 w-full rounded-xl border border-[rgba(124,74,45,0.18)] bg-white px-4 py-3 text-base outline-none focus:border-[var(--wheat)] focus:ring-2 focus:ring-[rgba(224,165,58,0.25)]"
         />
         {error && <p className="mt-2 text-sm font-medium text-red-600">{error}</p>}
-        <button type="submit" disabled={busy || !name.trim()} className="btn btn-primary mt-4 w-full text-base">
+        <button
+          type="submit"
+          disabled={busy}
+          className="btn btn-primary mt-4 w-full text-base"
+          style={{ minHeight: "3rem" }}
+        >
           {busy ? "확인 중…" : "들어가기"}
         </button>
       </form>
