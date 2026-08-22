@@ -16,6 +16,10 @@ const REFRESH_MS = 30_000;
 // 저장된 이름은 이 페이지가 살아 있는 동안 바뀌지 않으므로 구독은 no-op이다.
 const subscribeToName = () => () => {};
 
+// 하이드레이션 이후에만 true — 서버 스냅샷과 클라이언트 스냅샷을 구분한다.
+const getHydrated = () => true;
+const getHydratedServer = () => false;
+
 export default function FieldPage() {
   const router = useRouter();
   const name = useSyncExternalStore(
@@ -23,6 +27,7 @@ export default function FieldPage() {
     () => getSavedName(), // 클라이언트 스냅샷
     () => null // 서버 스냅샷 — SSR/하이드레이션 불일치를 React가 처리한다
   );
+  const hydrated = useSyncExternalStore(subscribeToName, getHydrated, getHydratedServer);
   const [state, setState] = useState<FieldState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [busyCheck, setBusyCheck] = useState<CheckKind | null>(null);
@@ -42,6 +47,7 @@ export default function FieldPage() {
   }, [router]);
 
   useEffect(() => {
+    if (!hydrated) return; // 아직 클라이언트 스냅샷 전 — 판단하지 않는다
     if (!name) {
       router.replace("/");
       return;
@@ -51,7 +57,7 @@ export default function FieldPage() {
     })();
     const timer = setInterval(() => load(name), REFRESH_MS);
     return () => clearInterval(timer);
-  }, [name, load, router]);
+  }, [hydrated, name, load, router]);
 
   // 단계가 오르면 장면을 다시 그려 fade-up 애니메이션을 준다
   useEffect(() => {

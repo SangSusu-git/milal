@@ -12,6 +12,10 @@ const isDev = process.env.NODE_ENV !== "production";
 // 저장된 이름은 이 페이지가 살아 있는 동안 바뀌지 않으므로 구독은 no-op이다.
 const subscribeToName = () => () => {};
 
+// 하이드레이션 이후에만 true — 서버 스냅샷과 클라이언트 스냅샷을 구분한다.
+const getHydrated = () => true;
+const getHydratedServer = () => false;
+
 function fmtTime(iso: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -29,6 +33,7 @@ export default function AdminPage() {
     () => getSavedName(), // 클라이언트 스냅샷
     () => null // 서버 스냅샷 — SSR/하이드레이션 불일치를 React가 처리한다
   );
+  const hydrated = useSyncExternalStore(subscribeToName, getHydrated, getHydratedServer);
   const [requests, setRequests] = useState<PendingRequest[] | null>(null);
   const [state, setState] = useState<FieldState | null>(null);
   const [recent, setRecent] = useState<LedgerEntry[] | null>(null);
@@ -51,6 +56,7 @@ export default function AdminPage() {
   }, [router]);
 
   useEffect(() => {
+    if (!hydrated) return; // 아직 클라이언트 스냅샷 전 — 판단하지 않는다
     if (!name) {
       router.replace("/");
       return;
@@ -58,7 +64,7 @@ export default function AdminPage() {
     (async () => {
       await load(name);
     })();
-  }, [name, load, router]);
+  }, [hydrated, name, load, router]);
 
   function flash(text: string) {
     setMsg(text);
