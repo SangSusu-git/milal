@@ -53,23 +53,68 @@ function Stalk({ x, height, golden, stage, delay = 0 }: { x: number; height: num
   const stem = golden ? "#c9952c" : "#4d9a3e";
   const head = golden ? `url(#grainGold-${stage})` : `url(#grainGreen-${stage})`;
   const awn = golden ? "#b8842a" : "#6fb35c";
-  const spikelets = Array.from({ length: 7 }, (_, i) => i);
+  // 잎은 줄기와 같은 굵기의 곡선이 아니라 납작한 칼날 모양이어야 한다.
+  // (예전 버전은 줄기와 동일한 stroke 두 개를 좌우로 뻗어 선인장처럼 보였다.)
+  // 익은 밀의 잎은 초록이 아니라 볏짚색이다.
+  const leaf = golden ? "#dcb96b" : "#57a349";
+  const EAR = 44; // 이삭 길이
+  const COUNT = 11; // 낟알 수 — 촘촘할수록 밀답다
+  const earBase = top + EAR;
+  const grains = Array.from({ length: COUNT }, (_, i) => {
+    const side = i % 2 === 0 ? -1 : 1;
+    return { i, side, y: earBase - i * (EAR / COUNT), r: 4.4 - (i / (COUNT - 1)) * 1.5 };
+  });
+
   return (
     <g className="sway" style={{ animationDelay: `${delay}s` }}>
-      <path d={`M ${x} 228 C ${x + 2} ${228 - height * 0.4}, ${x - 2} ${228 - height * 0.7}, ${x} ${top + 36}`} stroke={stem} strokeWidth="3" strokeLinecap="round" fill="none" />
-      <path d={`M ${x} ${228 - height * 0.45} C ${x - 18} ${228 - height * 0.52}, ${x - 24} ${228 - height * 0.66}, ${x - 20} ${228 - height * 0.76}`} stroke={stem} strokeWidth="2.4" strokeLinecap="round" fill="none" />
-      <path d={`M ${x} ${228 - height * 0.3} C ${x + 16} ${228 - height * 0.36}, ${x + 22} ${228 - height * 0.5}, ${x + 18} ${228 - height * 0.6}`} stroke={stem} strokeWidth="2.4" strokeLinecap="round" fill="none" />
-      {spikelets.map((i) => {
-        const y = top + 36 - i * 5.2;
-        const side = i % 2 === 0 ? -1 : 1;
-        return (
-          <g key={i}>
-            <ellipse cx={x + side * 5} cy={y} rx="6" ry="3.6" fill={head} transform={`rotate(${side * -28} ${x + side * 5} ${y})`} />
-            <path d={`M ${x + side * 8} ${y - 2} L ${x + side * 16} ${y - 14}`} stroke={awn} strokeWidth="0.9" opacity="0.85" />
-          </g>
-        );
-      })}
-      <ellipse cx={x} cy={top} rx="5" ry="3.4" fill={head} />
+      {/* 줄기 — 아래는 곧고 위로 갈수록 살짝 휜다 */}
+      <path
+        d={`M ${x} 228 C ${x + 1.5} ${228 - height * 0.45}, ${x - 1.5} ${228 - height * 0.75}, ${x} ${earBase}`}
+        stroke={stem}
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        fill="none"
+      />
+
+      {/* 잎 둘 — 바깥으로 뻗었다가 끝이 아래로 처진다 */}
+      <path
+        d={`M ${x} ${228 - height * 0.44} C ${x - 15} ${228 - height * 0.52}, ${x - 27} ${228 - height * 0.5}, ${x - 33} ${228 - height * 0.33} C ${x - 24} ${228 - height * 0.47}, ${x - 12} ${228 - height * 0.45}, ${x} ${228 - height * 0.39} Z`}
+        fill={leaf}
+      />
+      <path
+        d={`M ${x} ${228 - height * 0.27} C ${x + 13} ${228 - height * 0.35}, ${x + 23} ${228 - height * 0.34}, ${x + 29} ${228 - height * 0.18} C ${x + 21} ${228 - height * 0.31}, ${x + 10} ${228 - height * 0.29}, ${x} ${228 - height * 0.22} Z`}
+        fill={leaf}
+      />
+
+      {/* 까끄라기 — 낟알 뒤에 깔리도록 먼저 그린다 */}
+      {grains.map(({ i, side, y }) => (
+        <path
+          key={`awn-${i}`}
+          d={`M ${x + side * 3} ${y - 2} L ${x + side * 13} ${y - 20}`}
+          stroke={awn}
+          strokeWidth="0.8"
+          strokeLinecap="round"
+          opacity="0.7"
+        />
+      ))}
+
+      {/* 낟알 — 줄기에 바짝 붙여 두 줄로 */}
+      {grains.map(({ i, side, y, r }) => (
+        <ellipse
+          key={`grain-${i}`}
+          cx={x + side * 2.9}
+          cy={y}
+          rx={r}
+          ry={r * 0.62}
+          fill={head}
+          transform={`rotate(${side * -34} ${x + side * 2.9} ${y})`}
+        />
+      ))}
+
+      {/* 이삭 끝 */}
+      <ellipse cx={x} cy={top + 2} rx="3" ry="2.1" fill={head} />
+      <path d={`M ${x} ${top + 1} L ${x - 4} ${top - 15}`} stroke={awn} strokeWidth="0.8" strokeLinecap="round" opacity="0.7" />
+      <path d={`M ${x} ${top + 1} L ${x + 3} ${top - 17}`} stroke={awn} strokeWidth="0.8" strokeLinecap="round" opacity="0.7" />
     </g>
   );
 }
