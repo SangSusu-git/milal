@@ -175,7 +175,10 @@ export default function AdminPage() {
               <li key={r.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/70 px-3 py-2.5">
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-sm font-semibold">{r.name}</span>
+                    <span className="text-sm">
+                      <span className="text-xs font-normal text-[var(--muted)]">요청자 </span>
+                      <span className="font-semibold">{r.name}</span>
+                    </span>
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${KIND_BADGE[r.kind].className}`}
                     >
@@ -184,14 +187,8 @@ export default function AdminPage() {
                     </span>
                     <span className="text-xs font-bold text-[var(--wheat-deep)]">+{REQUEST_POINTS[r.kind]}</span>
                   </p>
-                  <p className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-[var(--muted)]">
-                    <span>
-                      요청자 <span className="font-semibold text-[var(--ink)]">{r.name}</span>
-                    </span>
-                    <span aria-hidden="true">→</span>
-                    <span>
-                      대상 <span className="font-semibold text-[var(--ink)]">{r.target}</span>
-                    </span>
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">
+                    대상 <span className="font-semibold text-[var(--ink)]">{r.target}</span>
                   </p>
                   <p className="mt-0.5 text-xs text-[var(--muted)]">{fmtTime(r.requestedAt)}</p>
                 </div>
