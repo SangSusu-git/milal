@@ -184,6 +184,15 @@ export default function AdminPage() {
                     </span>
                     <span className="text-xs font-bold text-[var(--wheat-deep)]">+{REQUEST_POINTS[r.kind]}</span>
                   </p>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-[var(--muted)]">
+                    <span>
+                      요청자 <span className="font-semibold text-[var(--ink)]">{r.name}</span>
+                    </span>
+                    <span aria-hidden="true">→</span>
+                    <span>
+                      대상 <span className="font-semibold text-[var(--ink)]">{r.target}</span>
+                    </span>
+                  </p>
                   <p className="mt-0.5 text-xs text-[var(--muted)]">{fmtTime(r.requestedAt)}</p>
                 </div>
                 <div className="flex shrink-0 gap-2">

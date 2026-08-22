@@ -140,14 +140,18 @@ export async function check(
 
 // ── 요청 ────────────────────────────────────────────────
 
+/** 요청 대상 이름의 최대 길이 */
+export const REQUEST_TARGET_MAX_LEN = 40;
+
 export type AddRequestResult =
   | { ok: true; pendingCount: number }
-  | { ok: false; reason: "bad_kind" | "unknown_member" };
+  | { ok: false; reason: "bad_kind" | "unknown_member" | "empty_target" | "target_too_long" };
 
 export async function addRequest(
   store: Store,
   rawName: string,
   kind: RequestKind,
+  rawTarget: string,
   now: Date = new Date()
 ): Promise<AddRequestResult> {
   if (!isRequestKind(kind)) return { ok: false, reason: "bad_kind" };
@@ -155,11 +159,18 @@ export async function addRequest(
   const me = findMember(members, rawName);
   if (!me) return { ok: false, reason: "unknown_member" };
 
+  // 대상은 자유 텍스트다 — 명단 밖의 사람을 위해 기도하거나 권유할 수도 있으므로
+  // 명단과 대조하지 않는다.
+  const target = rawTarget.trim();
+  if (!target) return { ok: false, reason: "empty_target" };
+  if (target.length > REQUEST_TARGET_MAX_LEN) return { ok: false, reason: "target_too_long" };
+
   const requests = await getRequests(store);
   requests.push({
     id: randomUUID(),
     name: me.name,
     kind,
+    target,
     requestedAt: now.toISOString(),
   });
   await store.set("requests", requests);

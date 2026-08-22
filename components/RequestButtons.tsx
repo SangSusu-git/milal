@@ -4,7 +4,7 @@ import type { RequestKind } from "@/lib/types";
 type Props = {
   pendingCount: number;
   busy: RequestKind | null;
-  onRequest: (kind: RequestKind) => void;
+  onOpen: (kind: RequestKind) => void;
 };
 
 const ITEMS: { kind: RequestKind; icon: string; label: string }[] = [
@@ -13,7 +13,7 @@ const ITEMS: { kind: RequestKind; icon: string; label: string }[] = [
   { kind: "invite_face", icon: "🤝", label: "대면 권유" },
 ];
 
-export default function RequestButtons({ pendingCount, busy, onRequest }: Props) {
+export default function RequestButtons({ pendingCount, busy, onOpen }: Props) {
   return (
     <section className="card p-5">
       <div className="flex items-center justify-between">
@@ -30,7 +30,7 @@ export default function RequestButtons({ pendingCount, busy, onRequest }: Props)
             key={kind}
             type="button"
             disabled={busy !== null}
-            onClick={() => onRequest(kind)}
+            onClick={() => onOpen(kind)}
             className={`btn btn-ghost flex-col px-2 py-3 text-[13px] ${busy === kind ? "pop" : ""}`}
           >
             <span className="text-xl">{icon}</span>

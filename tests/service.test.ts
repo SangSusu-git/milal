@@ -147,39 +147,66 @@ describe("requests & decide", () => {
   });
 
   it("잘못된 종류·명단 외 이름은 거부", async () => {
-    expect(await addRequest(store, USER, "bible" as never, DAY1)).toEqual({ ok: false, reason: "bad_kind" });
-    expect(await addRequest(store, "홍길동", "prayer", DAY1)).toEqual({ ok: false, reason: "unknown_member" });
+    expect(await addRequest(store, USER, "bible" as never, "김영희", DAY1)).toEqual({ ok: false, reason: "bad_kind" });
+    expect(await addRequest(store, "홍길동", "prayer", "김영희", DAY1)).toEqual({ ok: false, reason: "unknown_member" });
   });
 
   it("요청은 제한 없이 쌓이고 대기 수가 늘어난다", async () => {
-    expect(await addRequest(store, USER, "prayer", DAY1)).toEqual({ ok: true, pendingCount: 1 });
-    expect(await addRequest(store, USER, "prayer", DAY1)).toEqual({ ok: true, pendingCount: 2 });
-    expect(await addRequest(store, USER, "invite_face", DAY1)).toEqual({ ok: true, pendingCount: 3 });
+    expect(await addRequest(store, USER, "prayer", "김영희", DAY1)).toEqual({ ok: true, pendingCount: 1 });
+    expect(await addRequest(store, USER, "prayer", "김영희", DAY1)).toEqual({ ok: true, pendingCount: 2 });
+    expect(await addRequest(store, USER, "invite_face", "김영희", DAY1)).toEqual({ ok: true, pendingCount: 3 });
     expect((await getState(store, USER, DAY1))!.me.pendingCount).toBe(3);
     expect((await getState(store, USER, DAY1))!.total).toBe(0); // 아직 미반영
   });
 
+  it("대상 이름은 앞뒤 공백이 다듬어져 저장되고 목록에도 그대로 담긴다", async () => {
+    await addRequest(store, USER, "prayer", "  외부인 김영희  ", DAY1);
+    const list = (await listRequests(store, ADMIN))!;
+    expect(list).toHaveLength(1);
+    expect(list[0].target).toBe("외부인 김영희");
+  });
+
+  it("대상 이름은 명단과 무관하게 자유 텍스트로 저장된다", async () => {
+    // 명단에 없는 이름이어도 거부하지 않는다 — 밖의 사람을 위해 기도·권유할 수 있다.
+    expect(await addRequest(store, USER, "prayer", "명단밖사람", DAY1)).toEqual({ ok: true, pendingCount: 1 });
+  });
+
+  it("빈 대상 또는 공백만 있는 대상은 거부되고 대기 목록에 쌓이지 않는다", async () => {
+    expect(await addRequest(store, USER, "prayer", "", DAY1)).toEqual({ ok: false, reason: "empty_target" });
+    expect(await addRequest(store, USER, "prayer", "   ", DAY1)).toEqual({ ok: false, reason: "empty_target" });
+    expect((await listRequests(store, ADMIN))!).toEqual([]);
+  });
+
+  it("40자를 넘는 대상은 거부되고 대기 목록에 쌓이지 않는다", async () => {
+    const tooLong = "가".repeat(41);
+    expect(await addRequest(store, USER, "prayer", tooLong, DAY1)).toEqual({ ok: false, reason: "target_too_long" });
+    expect((await listRequests(store, ADMIN))!).toEqual([]);
+
+    const exactly40 = "가".repeat(40);
+    expect(await addRequest(store, USER, "prayer", exactly40, DAY1)).toEqual({ ok: true, pendingCount: 1 });
+  });
+
   it("비관리자는 목록을 볼 수 없다", async () => {
-    await addRequest(store, USER, "prayer", DAY1);
+    await addRequest(store, USER, "prayer", "김영희", DAY1);
     expect(await listRequests(store, USER)).toBeNull();
     expect(await listRequests(store, "홍길동")).toBeNull();
   });
 
-  it("관리자는 요청자 이름·종류·시각을 본다", async () => {
-    await addRequest(store, USER, "prayer", DAY1);
-    await addRequest(store, OTHER, "invite_remote", DAY1_LATE);
+  it("관리자는 요청자 이름·종류·대상·시각을 본다", async () => {
+    await addRequest(store, USER, "prayer", "김영희", DAY1);
+    await addRequest(store, OTHER, "invite_remote", "박철수", DAY1_LATE);
     const list = (await listRequests(store, ADMIN))!;
     expect(list).toHaveLength(2);
-    expect(list[0]).toMatchObject({ name: USER, kind: "prayer", requestedAt: DAY1.toISOString() });
-    expect(list[1]).toMatchObject({ name: OTHER, kind: "invite_remote" });
+    expect(list[0]).toMatchObject({ name: USER, kind: "prayer", target: "김영희", requestedAt: DAY1.toISOString() });
+    expect(list[1]).toMatchObject({ name: OTHER, kind: "invite_remote", target: "박철수" });
     expect(typeof list[0].id).toBe("string");
     expect(list[0].id).not.toBe(list[1].id);
   });
 
   it("승인하면 종류별 점수가 요청자 이름으로 반영되고 목록에서 사라진다", async () => {
-    await addRequest(store, USER, "prayer", DAY1);
-    await addRequest(store, USER, "invite_remote", DAY1);
-    await addRequest(store, OTHER, "invite_face", DAY1);
+    await addRequest(store, USER, "prayer", "김영희", DAY1);
+    await addRequest(store, USER, "invite_remote", "박철수", DAY1);
+    await addRequest(store, OTHER, "invite_face", "이순신", DAY1);
     const [r1, r2, r3] = (await listRequests(store, ADMIN))!;
 
     expect(await decide(store, ADMIN, r1.id, true, DAY1)).toEqual({ ok: true, total: 3 });
@@ -194,8 +221,17 @@ describe("requests & decide", () => {
     expect((await getState(store, OTHER, DAY1))!.me.points).toBe(7);
   });
 
+  it("승인 시 원장에는 요청자만 기록되고 대상은 남지 않는다", async () => {
+    await addRequest(store, USER, "prayer", "김영희", DAY1);
+    const [r] = (await listRequests(store, ADMIN))!;
+    await decide(store, ADMIN, r.id, true, DAY1);
+    const recent = await recentLedger(store, 1);
+    expect(recent[0]).toMatchObject({ name: USER, kind: "prayer", points: 3 });
+    expect("target" in recent[0]).toBe(false);
+  });
+
   it("거절하면 0점이고 목록에서만 사라진다", async () => {
-    await addRequest(store, USER, "invite_face", DAY1);
+    await addRequest(store, USER, "invite_face", "김영희", DAY1);
     const [r] = (await listRequests(store, ADMIN))!;
     expect(await decide(store, ADMIN, r.id, false, DAY1)).toEqual({ ok: true, total: 0 });
     expect(await listRequests(store, ADMIN)).toEqual([]);
@@ -203,7 +239,7 @@ describe("requests & decide", () => {
   });
 
   it("비관리자는 승인할 수 없다", async () => {
-    await addRequest(store, USER, "prayer", DAY1);
+    await addRequest(store, USER, "prayer", "김영희", DAY1);
     const [r] = (await listRequests(store, ADMIN))!;
     expect(await decide(store, USER, r.id, true, DAY1)).toEqual({ ok: false, reason: "forbidden" });
     expect(await listRequests(store, ADMIN)).toHaveLength(1);

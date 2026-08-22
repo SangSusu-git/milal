@@ -4,6 +4,7 @@ type Props = {
   bible: boolean;
   resolve: boolean;
   busy: CheckKind | null;
+  myPoints: number;
   onCheck: (kind: CheckKind) => void;
 };
 
@@ -12,11 +13,16 @@ const ITEMS: { kind: CheckKind; icon: string; label: string }[] = [
   { kind: "resolve", icon: "✅", label: "다짐 지켰어요" },
 ];
 
-export default function CheckButtons({ bible, resolve, busy, onCheck }: Props) {
+export default function CheckButtons({ bible, resolve, busy, myPoints, onCheck }: Props) {
   const done = { bible, resolve };
   return (
     <section className="card p-5">
-      <h3 className="text-sm font-bold text-[var(--muted)]">오늘 내 체크</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-[var(--muted)]">오늘 내 체크</h3>
+        <p className="text-xs text-[var(--muted)]">
+          내 점수 <span className="text-sm font-extrabold text-[var(--wheat-deep)]">{myPoints}</span>점
+        </p>
+      </div>
       <div className="mt-3 grid grid-cols-2 gap-3">
         {ITEMS.map(({ kind, icon, label }) => {
           const isDone = done[kind];

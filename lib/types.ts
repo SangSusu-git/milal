@@ -21,6 +21,8 @@ export interface PendingRequest {
   id: string;
   name: string;
   kind: RequestKind;
+  /** 요청 대상 — 요청자가 직접 입력한 자유 텍스트. 명단과 무관하다. */
+  target: string;
   requestedAt: string; // ISO 8601
 }
 

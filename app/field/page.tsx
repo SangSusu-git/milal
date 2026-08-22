@@ -8,6 +8,7 @@ import ScoreGauge from "@/components/ScoreGauge";
 import ProgressCard from "@/components/ProgressCard";
 import CheckButtons from "@/components/CheckButtons";
 import RequestButtons from "@/components/RequestButtons";
+import RequestDialog from "@/components/RequestDialog";
 import { api, clearName, getSavedName } from "@/lib/client";
 import type { CheckKind, FieldState, RequestKind } from "@/lib/types";
 
@@ -33,6 +34,7 @@ export default function FieldPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [busyCheck, setBusyCheck] = useState<CheckKind | null>(null);
   const [busyRequest, setBusyRequest] = useState<RequestKind | null>(null);
+  const [requestDialog, setRequestDialog] = useState<RequestKind | null>(null);
   const [floating, setFloating] = useState<{ id: number; text: string } | null>(null);
   const prevStage = useRef<number | null>(null);
   const [stageKey, setStageKey] = useState(0);
@@ -118,12 +120,13 @@ export default function FieldPage() {
     }
   }
 
-  async function onRequest(kind: RequestKind) {
+  async function onRequestSubmit(kind: RequestKind, target: string) {
     if (!name) return;
     setBusyRequest(kind);
-    const { status } = await api("/api/request", { method: "POST", body: { name, kind } });
+    const { status } = await api("/api/request", { method: "POST", body: { name, kind, target } });
     setBusyRequest(null);
     if (status === 200) {
+      setRequestDialog(null);
       showToast("요청했어요. 관리자 확인 후 반영됩니다 🙌");
       load(name);
     } else if (status === 0) {
@@ -195,11 +198,21 @@ export default function FieldPage() {
         )}
       </section>
 
-      <ProgressCard total={state.total} stage={state.stage} myPoints={state.me.points} />
+      <ProgressCard total={state.total} stage={state.stage} />
 
-      <CheckButtons bible={state.me.bible} resolve={state.me.resolve} busy={busyCheck} onCheck={onCheck} />
+      <CheckButtons
+        bible={state.me.bible}
+        resolve={state.me.resolve}
+        busy={busyCheck}
+        myPoints={state.me.points}
+        onCheck={onCheck}
+      />
 
-      <RequestButtons pendingCount={state.me.pendingCount} busy={busyRequest} onRequest={onRequest} />
+      <RequestButtons
+        pendingCount={state.me.pendingCount}
+        busy={busyRequest}
+        onOpen={(kind) => setRequestDialog(kind)}
+      />
 
       <footer className="px-1 pt-2 text-center text-xs text-[var(--muted)]">
         오늘 {state.todayCount}/{state.memberCount}명 참여 · 누적 {state.total}점
@@ -209,6 +222,15 @@ export default function FieldPage() {
         <div className="fade-up fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-medium text-white shadow-lg">
           {toast}
         </div>
+      )}
+
+      {requestDialog && (
+        <RequestDialog
+          kind={requestDialog}
+          busy={busyRequest !== null}
+          onCancel={() => setRequestDialog(null)}
+          onSubmit={(target) => onRequestSubmit(requestDialog, target)}
+        />
       )}
     </main>
   );

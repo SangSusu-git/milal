@@ -4,11 +4,9 @@ import type { Stage } from "@/lib/types";
 export default function ProgressCard({
   total,
   stage,
-  myPoints,
 }: {
   total: number;
   stage: Stage;
-  myPoints: number;
 }) {
   const next = nextThreshold(total);
   return (
@@ -19,7 +17,6 @@ export default function ProgressCard({
       <p className="mt-3 text-xs text-[var(--muted)]">
         {next === null ? "밀알이 결실을 맺었어요 🎉" : `다음 단계까지 ${next - total}점`}
       </p>
-      <p className="mt-1 text-xs text-[var(--muted)]">나의 기여 {myPoints}점</p>
     </section>
   );
 }
