@@ -53,17 +53,19 @@ export default function AdminPage() {
       router.replace("/field");
       return;
     }
-    if (r.status !== 200 || s.status !== 200 || rec.status !== 200) {
+    if (r.status !== 200 || s.status !== 200) {
       // 새로고침 실패 — 화면에 있던 좋은 상태를 지우지 않는다
       setLoadFailed(true);
-      const anyTransport = r.status === 0 || s.status === 0 || rec.status === 0;
+      const anyTransport = r.status === 0 || s.status === 0;
       flash(anyTransport ? "연결에 실패했어요. 잠시 후 다시 시도해주세요" : "처리하지 못했어요. 새로고침 후 다시 시도해주세요");
       return;
     }
     setLoadFailed(false);
     setRequests(r.data);
     setState(s.data);
-    setRecent(rec.data);
+    // recent는 참고용 정보일 뿐이라 승인 워크플로를 막으면 안 된다 — 실패 시
+    // 이전 값을 유지하고(첫 로드라면 빈 배열로), r/s 성공 여부와 독립적으로 취급한다.
+    setRecent((prev) => (rec.status === 200 ? rec.data : (prev ?? [])));
   }, [router]);
 
   useEffect(() => {
