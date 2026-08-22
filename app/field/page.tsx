@@ -179,11 +179,12 @@ export default function FieldPage() {
         </div>
       </header>
 
-      <section className="card relative flex overflow-hidden p-0">
-        <div key={stageKey} className="fade-up min-w-0 flex-1">
+      <section className="card relative overflow-hidden p-0">
+        <div key={stageKey} className="fade-up">
           <WheatScene stage={state.stage} />
         </div>
-        <ScoreGauge total={state.total} className="w-16 shrink-0 border-l border-[rgba(124,74,45,0.1)]" />
+        {/* 게이지는 밭 안에 얹는다. 해가 오른쪽에 뜨므로 왼쪽에 둔다. */}
+        <ScoreGauge total={state.total} className="absolute bottom-3 left-3 top-3 w-11" />
         {floating && (
           <span
             key={floating.id}
