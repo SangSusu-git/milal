@@ -39,6 +39,7 @@ export default function AdminPage() {
   const [recent, setRecent] = useState<LedgerEntry[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const load = useCallback(async (who: string) => {
     const [r, s, rec] = await Promise.all([
@@ -46,13 +47,23 @@ export default function AdminPage() {
       api<FieldState>(`/api/state?name=${encodeURIComponent(who)}`),
       api<LedgerEntry[]>(`/api/admin/recent?name=${encodeURIComponent(who)}`),
     ]);
-    if (r.status === 403 || s.status !== 200 || !s.data.me.isAdmin) {
+    // 서버가 실제로 "관리자 아님"이라고 답했을 때만 리다이렉트한다 — 전송 실패(0)나
+    // 5xx는 권한 없음이 아니므로 리다이렉트하지 않는다.
+    if (r.status === 403 || (s.status === 200 && !s.data.me.isAdmin)) {
       router.replace("/field");
       return;
     }
+    if (r.status !== 200 || s.status !== 200 || rec.status !== 200) {
+      // 새로고침 실패 — 화면에 있던 좋은 상태를 지우지 않는다
+      setLoadFailed(true);
+      const anyTransport = r.status === 0 || s.status === 0 || rec.status === 0;
+      flash(anyTransport ? "연결에 실패했어요. 잠시 후 다시 시도해주세요" : "처리하지 못했어요. 새로고침 후 다시 시도해주세요");
+      return;
+    }
+    setLoadFailed(false);
     setRequests(r.data);
     setState(s.data);
-    setRecent(rec.status === 200 ? rec.data : []);
+    setRecent(rec.data);
   }, [router]);
 
   useEffect(() => {
@@ -104,8 +115,20 @@ export default function AdminPage() {
 
   if (!state || !requests || !recent || !name) {
     return (
-      <main className="flex min-h-dvh items-center justify-center text-sm text-[var(--muted)]">
-        불러오는 중…
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-3 text-sm text-[var(--muted)]">
+        <p>불러오는 중…</p>
+        {loadFailed && (
+          <>
+            <p className="text-xs">불러오지 못했어요. 잠시 후 다시 시도해주세요</p>
+            <button
+              type="button"
+              onClick={() => name && load(name)}
+              className="btn btn-ghost px-3 py-1.5 text-sm"
+            >
+              다시 시도
+            </button>
+          </>
+        )}
       </main>
     );
   }

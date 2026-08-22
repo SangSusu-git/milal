@@ -29,12 +29,15 @@ export default function FieldPage() {
   );
   const hydrated = useSyncExternalStore(subscribeToName, getHydrated, getHydratedServer);
   const [state, setState] = useState<FieldState | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [busyCheck, setBusyCheck] = useState<CheckKind | null>(null);
   const [busyRequest, setBusyRequest] = useState<RequestKind | null>(null);
   const [floating, setFloating] = useState<{ id: number; text: string } | null>(null);
   const prevStage = useRef<number | null>(null);
   const [stageKey, setStageKey] = useState(0);
+  // 연속된 새로고침 실패 동안 토스트를 한 번만 띄우기 위한 플래그. 성공하면 초기화된다.
+  const toastedForFailureRef = useRef(false);
 
   const load = useCallback(async (who: string) => {
     const { status, data } = await api<FieldState>(`/api/state?name=${encodeURIComponent(who)}`);
@@ -43,7 +46,22 @@ export default function FieldPage() {
       router.replace("/");
       return;
     }
-    setState(data);
+    if (status === 200) {
+      setState(data);
+      setLoadFailed(false);
+      toastedForFailureRef.current = false;
+      return;
+    }
+    // 새로고침 실패 — 화면에 있던 좋은 상태를 지우지 않는다
+    setLoadFailed(true);
+    if (!toastedForFailureRef.current) {
+      toastedForFailureRef.current = true;
+      if (status === 0) {
+        showToast("연결에 실패했어요. 잠시 후 다시 시도해주세요");
+      } else {
+        showToast("일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요");
+      }
+    }
   }, [router]);
 
   useEffect(() => {
@@ -122,8 +140,20 @@ export default function FieldPage() {
 
   if (!state || !name) {
     return (
-      <main className="flex min-h-dvh items-center justify-center text-sm text-[var(--muted)]">
-        밭으로 가는 중…
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-3 text-sm text-[var(--muted)]">
+        <p>밭으로 가는 중…</p>
+        {loadFailed && (
+          <>
+            <p className="text-xs">불러오지 못했어요. 잠시 후 다시 시도해주세요</p>
+            <button
+              type="button"
+              onClick={() => name && load(name)}
+              className="btn btn-ghost px-3 py-1.5 text-sm"
+            >
+              다시 시도
+            </button>
+          </>
+        )}
       </main>
     );
   }
