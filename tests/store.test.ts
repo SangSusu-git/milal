@@ -93,4 +93,12 @@ describe("file store", () => {
     const stored = await store.get<{ n: number }>("k");
     expect([value1, value2]).toContainEqual(stored);
   });
+
+  it("돌아가는 중에 디렉터리가 사라져도 다시 만들고 저장한다", async () => {
+    const store = createFileStore(dir);
+    await store.set("k", { a: 1 });
+    rmSync(dir, { recursive: true, force: true }); // README가 안내하는 초기화 방법
+    await expect(store.set("k", { a: 2 })).resolves.toBeUndefined();
+    expect(await store.get("k")).toEqual({ a: 2 });
+  });
 });
