@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { api, getSavedName } from "@/lib/client";
 import { KIND_LABEL, REQUEST_POINTS } from "@/lib/rules";
-import type { FieldState, LedgerEntry, PendingRequest } from "@/lib/types";
+import type { FieldState, LedgerEntry, PendingRequest, RequestKind } from "@/lib/types";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -25,6 +25,16 @@ function fmtTime(iso: string): string {
     minute: "2-digit",
   }).format(new Date(iso));
 }
+
+// 요청 종류별 배지 스타일 — 새 종류가 생기면 여기 한 곳만 추가하면 된다.
+// 이모지는 components/RequestButtons.tsx의 버튼과 동일하게 맞춘다.
+const KIND_BADGE: Record<RequestKind, { emoji: string; className: string }> = {
+  prayer: { emoji: "🙏", className: "bg-violet-100 text-violet-700" },
+  invite_remote: { emoji: "💬", className: "bg-blue-100 text-blue-700" },
+  invite_face: { emoji: "🤝", className: "bg-green-100 text-green-700" },
+};
+
+const REQUEST_KIND_ORDER: RequestKind[] = ["prayer", "invite_remote", "invite_face"];
 
 export default function AdminPage() {
   const router = useRouter();
@@ -149,20 +159,34 @@ export default function AdminPage() {
           <h2 className="text-sm font-bold text-[var(--muted)]">대기 중 요청</h2>
           <span className="text-xs text-[var(--muted)]">{requests.length}건</span>
         </div>
+        {requests.length > 0 && (
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            {REQUEST_KIND_ORDER.map((kind) => ({ kind, count: requests.filter((r) => r.kind === kind).length }))
+              .filter(({ count }) => count > 0)
+              .map(({ kind, count }) => `${KIND_LABEL[kind]} ${count}`)
+              .join(" · ")}
+          </p>
+        )}
         {requests.length === 0 ? (
           <p className="mt-3 text-sm text-[var(--muted)]">처리할 요청이 없어요.</p>
         ) : (
           <ul className="mt-3 flex flex-col gap-2">
             {requests.map((r) => (
-              <li key={r.id} className="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2.5">
-                <div>
-                  <p className="text-sm font-semibold">
-                    {r.name} <span className="font-normal text-[var(--muted)]">· {KIND_LABEL[r.kind]}</span>
-                    <span className="ml-1 text-xs font-bold text-[var(--wheat-deep)]">+{REQUEST_POINTS[r.kind]}</span>
+              <li key={r.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/70 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-sm font-semibold">{r.name}</span>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${KIND_BADGE[r.kind].className}`}
+                    >
+                      <span aria-hidden="true">{KIND_BADGE[r.kind].emoji}</span>
+                      {KIND_LABEL[r.kind]}
+                    </span>
+                    <span className="text-xs font-bold text-[var(--wheat-deep)]">+{REQUEST_POINTS[r.kind]}</span>
                   </p>
-                  <p className="text-xs text-[var(--muted)]">{fmtTime(r.requestedAt)}</p>
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">{fmtTime(r.requestedAt)}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2">
                   <button
                     type="button"
                     disabled={busyId !== null}
