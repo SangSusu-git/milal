@@ -12,7 +12,9 @@ import RequestDialog from "@/components/RequestDialog";
 import { api, clearName, getSavedName } from "@/lib/client";
 import type { CheckKind, FieldState, RequestKind } from "@/lib/types";
 
-const REFRESH_MS = 30_000;
+// 켜둔 화면은 15초마다, 다른 앱에서 돌아오면 즉시 갱신한다.
+// 실제 사용은 "열어서 체크하고 닫는" 패턴이라 돌아올 때 갱신이 체감에 가장 크다.
+const REFRESH_MS = 15_000;
 
 // 저장된 이름은 이 페이지가 살아 있는 동안 바뀌지 않으므로 구독은 no-op이다.
 const subscribeToName = () => () => {};
@@ -76,7 +78,15 @@ export default function FieldPage() {
       await load(name);
     })();
     const timer = setInterval(() => load(name), REFRESH_MS);
-    return () => clearInterval(timer);
+    // 다른 앱을 보다가 돌아오거나 화면을 다시 켜면 기다리지 않고 바로 갱신한다.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load(name);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [hydrated, name, load, router]);
 
   // 단계가 오르면 장면을 다시 그려 fade-up 애니메이션을 준다
