@@ -33,6 +33,16 @@ export interface LedgerEntry {
   points: number;
 }
 
+/** 관리자 백업/복원 파일 형식 */
+export interface Backup {
+  version: 1;
+  exportedAt: string; // ISO 8601
+  members: Member[];
+  requests: PendingRequest[];
+  ledger: LedgerEntry[];
+  checks: Record<string, Checks>; // 이름 → 체크
+}
+
 export interface FieldState {
   today: string;
   total: number;

@@ -1,8 +1,19 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { Store } from "@/lib/store/types";
+import type { Backup } from "@/lib/types";
 import { createMemoryStore } from "@/lib/store/memory";
 import { SEED_MEMBERS } from "@/lib/members";
-import { getState, check, addRequest, listRequests, decide, recentLedger, setTotalDev } from "@/lib/service";
+import {
+  getState,
+  check,
+  addRequest,
+  listRequests,
+  decide,
+  recentLedger,
+  setTotalDev,
+  exportBackup,
+  restoreBackup,
+} from "@/lib/service";
 
 const ADMIN = SEED_MEMBERS.find((m) => m.isAdmin)!.name;
 const USER = SEED_MEMBERS.find((m) => !m.isAdmin)!.name;
@@ -260,6 +271,167 @@ describe("requests & decide", () => {
   it("recentLedger(store, 0)은 원장이 비어있지 않아도 빈 배열", async () => {
     await check(store, USER, "bible", DAY1);
     expect(await recentLedger(store, 0)).toEqual([]);
+  });
+});
+
+describe("exportBackup & restoreBackup", () => {
+  let store: Store;
+  beforeEach(() => {
+    store = createMemoryStore();
+  });
+
+  it("비관리자는 백업할 수 없다", async () => {
+    expect(await exportBackup(store, USER)).toBeNull();
+    expect(await exportBackup(store, "홍길동")).toBeNull();
+  });
+
+  it("비관리자는 복원할 수 없다", async () => {
+    const backup = (await exportBackup(store, ADMIN))!;
+    expect(await restoreBackup(store, USER, backup)).toEqual({ ok: false, reason: "forbidden" });
+    expect(await restoreBackup(store, "홍길동", backup)).toEqual({ ok: false, reason: "forbidden" });
+  });
+
+  it("내보내기 → 복원 왕복은 총점·개인별 점수·오늘 체크·대기 요청을 보존한다", async () => {
+    await check(store, USER, "bible", DAY1);
+    await check(store, USER, "resolve", DAY1);
+    await check(store, OTHER, "bible", DAY1);
+    await addRequest(store, USER, "prayer", "김영희", DAY1);
+
+    const backup = (await exportBackup(store, ADMIN))!;
+    expect(backup.version).toBe(1);
+    expect(backup.members).toEqual(SEED_MEMBERS);
+
+    // 백업 이후 상태를 더 바꾼다 — 복원하면 백업 시점으로 되돌아가야 한다.
+    await check(store, OTHER, "resolve", DAY1);
+    await addRequest(store, OTHER, "invite_face", "이순신", DAY1);
+
+    expect(await restoreBackup(store, ADMIN, backup)).toEqual({ ok: true });
+
+    const s = (await getState(store, USER, DAY1))!;
+    expect(s.total).toBe(3);
+    expect(s.me.points).toBe(2);
+    expect(s.me.bible).toBe(true);
+    expect(s.me.resolve).toBe(true);
+    expect(s.me.pendingCount).toBe(1);
+
+    const otherS = (await getState(store, OTHER, DAY1))!;
+    expect(otherS.me.points).toBe(1);
+    expect(otherS.me.bible).toBe(true);
+    expect(otherS.me.resolve).toBe(false); // 백업 이후에 추가된 체크는 사라졌다
+    expect(otherS.me.pendingCount).toBe(0); // 백업 이후에 추가된 요청도 사라졌다
+  });
+
+  it("복원 검증: 관리자가 0명이면 invalid이고 기존 데이터는 그대로다", async () => {
+    await check(store, USER, "bible", DAY1);
+    const before = (await getState(store, USER, DAY1))!;
+    const bad = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      members: [{ name: "가", isAdmin: false }],
+      requests: [],
+      ledger: [],
+      checks: {},
+    };
+    expect(await restoreBackup(store, ADMIN, bad)).toEqual({ ok: false, reason: "invalid" });
+    expect(await getState(store, USER, DAY1)).toEqual(before);
+  });
+
+  it("복원 검증: 관리자가 2명이면 invalid이고 기존 데이터는 그대로다", async () => {
+    await check(store, USER, "bible", DAY1);
+    const before = (await getState(store, USER, DAY1))!;
+    const bad = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      members: [
+        { name: "가", isAdmin: true },
+        { name: "나", isAdmin: true },
+      ],
+      requests: [],
+      ledger: [],
+      checks: {},
+    };
+    expect(await restoreBackup(store, ADMIN, bad)).toEqual({ ok: false, reason: "invalid" });
+    expect(await getState(store, USER, DAY1)).toEqual(before);
+  });
+
+  it("복원 검증: 이름이 중복되면 invalid이고 기존 데이터는 그대로다", async () => {
+    await check(store, USER, "bible", DAY1);
+    const before = (await getState(store, USER, DAY1))!;
+    const bad = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      members: [
+        { name: "가", isAdmin: true },
+        { name: "가", isAdmin: false },
+      ],
+      requests: [],
+      ledger: [],
+      checks: {},
+    };
+    expect(await restoreBackup(store, ADMIN, bad)).toEqual({ ok: false, reason: "invalid" });
+    expect(await getState(store, USER, DAY1)).toEqual(before);
+  });
+
+  it("복원 검증: 명단이 비어있으면 invalid이고 기존 데이터는 그대로다", async () => {
+    await check(store, USER, "bible", DAY1);
+    const before = (await getState(store, USER, DAY1))!;
+    const bad = { version: 1, exportedAt: new Date().toISOString(), members: [], requests: [], ledger: [], checks: {} };
+    expect(await restoreBackup(store, ADMIN, bad)).toEqual({ ok: false, reason: "invalid" });
+    expect(await getState(store, USER, DAY1)).toEqual(before);
+  });
+
+  it("복원 검증: version이 1이 아니면 invalid이고 기존 데이터는 그대로다", async () => {
+    await check(store, USER, "bible", DAY1);
+    const before = (await getState(store, USER, DAY1))!;
+    const bad = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      members: SEED_MEMBERS,
+      requests: [],
+      ledger: [],
+      checks: {},
+    };
+    expect(await restoreBackup(store, ADMIN, bad)).toEqual({ ok: false, reason: "invalid" });
+    expect(await getState(store, USER, DAY1)).toEqual(before);
+  });
+
+  it("새 명단으로 복원하면 예전 checks는 버려지고 총점은 복원된 ledger를 따른다", async () => {
+    await check(store, USER, "bible", DAY1);
+    await check(store, OTHER, "bible", DAY1); // 복원 전 총점 2
+
+    const newAdmin = "새관리자";
+    const newUser = "새사용자";
+    const backup: Backup = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      members: [
+        { name: newAdmin, isAdmin: true },
+        { name: newUser, isAdmin: false },
+      ],
+      requests: [],
+      ledger: [
+        { at: DAY1.toISOString(), name: newUser, kind: "bible", points: 1 },
+        { at: DAY1.toISOString(), name: newUser, kind: "resolve", points: 1 },
+        { at: DAY1.toISOString(), name: newAdmin, kind: "prayer", points: 3 },
+      ],
+      checks: {}, // 예전 USER/OTHER의 checks는 여기 없다 — 새 명단 밖이라 복원되지 않는다
+    };
+    expect(await restoreBackup(store, ADMIN, backup)).toEqual({ ok: true });
+
+    // 예전 이름들은 더 이상 명단에 없다
+    expect(await getState(store, ADMIN, DAY1)).toBeNull();
+    expect(await getState(store, USER, DAY1)).toBeNull();
+    expect(await getState(store, OTHER, DAY1)).toBeNull();
+
+    const s = (await getState(store, newUser, DAY1))!;
+    expect(s.total).toBe(5); // 예전 checks(2)가 아니라 복원된 ledger(5)를 따른다
+    expect(s.me.points).toBe(2);
+    expect(s.me.bible).toBe(false); // 새 명단의 새 이름이므로 예전 체크가 이어지지 않는다
+    expect(s.memberCount).toBe(2);
+
+    // 새 명단의 checks만 남는다 — 예전 이름의 checks는 버려졌다(재조회 불가)
+    const reExported = (await exportBackup(store, newAdmin))!;
+    expect(Object.keys(reExported.checks).sort()).toEqual([newAdmin, newUser].sort());
   });
 });
 

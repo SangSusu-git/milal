@@ -29,18 +29,13 @@ npm test           # 규칙·저장소·서비스 단위 테스트
 ```
 
 **배포(프로덕션) 환경은 다릅니다.** `data/members.json`은 로컬 파일 저장소 전용이며, 배포 후에는
-쓰이지 않습니다. 프로덕션에서는 `lib/members.ts`의 `SEED_MEMBERS`가 저장소(Vercel Blob)에 **딱
+쓰이지 않습니다. 프로덕션에서는 `lib/members.ts`의 `SEED_MEMBERS`가 저장소(Upstash Redis)에 **딱
 한 번**, 즉 `members` 키가 아직 없는 상태로 첫 요청이 들어올 때만 시딩됩니다. 그 이후로는 다시
 읽지 않으므로, 배포 후에 `SEED_MEMBERS`를 고쳐도 이미 저장된 명단에는 아무 영향이 없습니다.
 
-따라서 실제 30명 명단으로 배포하려면 순서가 중요합니다:
-
-1. `lib/members.ts`의 `SEED_MEMBERS`를 실제 이름과 관리자 1명(`isAdmin: true`)으로 고칩니다.
-2. **프로덕션에 첫 요청이 들어오기 전에** 그 변경 사항을 배포합니다.
-
-주의: 만약 테스트용 가짜 이름이 이미 프로덕션에 시딩되어 버렸다면, 이후에 코드를 고쳐도 고쳐지지
-않습니다 — 저장소에 이미 저장된 `members` 값을 직접 덮어써야 하며, 이 레포에는 아직 그 작업을
-할 수 있는 도구가 없습니다.
+실제 30명 명단으로 바꾸는 공식적인 방법은 관리자 화면의 **백업/복원**입니다: `/admin`에서 백업을
+내려받아 JSON의 `members`를 실제 이름과 관리자 1명(`isAdmin: true`)으로 고친 뒤 복원하세요. 복원은
+`members`·`requests`·`ledger`·`checks`를 통째로 교체합니다.
 
 ## 수동 테스트 순서
 
@@ -61,5 +56,7 @@ npm test           # 규칙·저장소·서비스 단위 테스트
 
 ## 배포 (나중에)
 
-Vercel에 이 레포를 연결하고 Vercel Blob 스토어를 추가하면 `BLOB_READ_WRITE_TOKEN`이 자동 주입되어 저장소가 Blob으로 전환됩니다.
+Vercel에 이 레포를 연결하고 Vercel Marketplace에서 Upstash Redis 스토어를 추가하면
+`UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`(또는 통합에 따라 `KV_REST_API_URL`/
+`KV_REST_API_TOKEN`)이 자동 주입되어 저장소가 Redis로 전환됩니다.
 자세한 절차는 구현 완료 후 별도 안내.

@@ -50,6 +50,8 @@ export default function AdminPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restoring, setRestoring] = useState(false);
 
   const load = useCallback(async (who: string) => {
     const [r, s, rec] = await Promise.all([
@@ -110,6 +112,33 @@ export default function AdminPage() {
       flash("처리하지 못했어요. 새로고침 후 다시 시도해주세요");
     }
     load(name);
+  }
+
+  async function doRestore() {
+    if (!name || !restoreFile) return;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await restoreFile.text());
+    } catch {
+      flash("파일을 읽을 수 없어요. JSON 파일인지 확인해주세요");
+      return;
+    }
+    if (!confirm("정말 복원할까요? 현재의 모든 점수·명단·기록이 백업 파일의 내용으로 바뀝니다.")) return;
+    setRestoring(true);
+    const { status } = await api<{ ok: boolean }>("/api/admin/restore", {
+      method: "POST",
+      body: { name, backup: parsed },
+    });
+    setRestoring(false);
+    if (status === 200) {
+      flash("복원했어요");
+      setRestoreFile(null);
+      load(name);
+    } else if (status === 0) {
+      flash("연결에 실패했어요. 잠시 후 다시 시도해주세요");
+    } else {
+      flash("복원하지 못했어요. 백업 파일을 확인해주세요");
+    }
   }
 
   async function setTotal(total: number) {
@@ -259,6 +288,39 @@ export default function AdminPage() {
             </ul>
           )}
         </div>
+      </section>
+
+      <section className="card p-5">
+        <h2 className="text-sm font-bold text-[var(--muted)]">데이터 관리</h2>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          점수·명단·기록 전체를 백업 파일로 내려받거나, 백업 파일로 되돌립니다. 자주 쓰는 기능이
+          아니에요.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <a
+            href={`/api/admin/backup?name=${encodeURIComponent(name)}`}
+            className="btn btn-ghost px-3 py-2 text-sm"
+          >
+            백업 내려받기
+          </a>
+          <input
+            type="file"
+            accept=".json"
+            onChange={(e) => setRestoreFile(e.target.files?.[0] ?? null)}
+            className="max-w-[10rem] text-xs text-[var(--muted)]"
+          />
+          <button
+            type="button"
+            disabled={!restoreFile || restoring}
+            onClick={doRestore}
+            className="btn btn-ghost px-3 py-2 text-sm"
+          >
+            복원하기
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-[var(--muted)]">
+          실제 명단으로 바꾸려면: 백업을 내려받아 members를 수정한 뒤 복원하세요.
+        </p>
       </section>
 
       {isDev && (

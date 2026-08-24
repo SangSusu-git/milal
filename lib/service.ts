@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Store } from "./store/types";
 import type {
+  Backup,
   CheckKind,
   Checks,
   DayCheck,
@@ -232,6 +233,83 @@ export async function recentLedger(store: Store, limit: number): Promise<LedgerE
   if (limit <= 0) return [];
   const ledger = await getLedger(store);
   return ledger.slice(-limit).reverse();
+}
+
+// ── 백업/복원 ───────────────────────────────────────────────
+
+/** 관리자가 아니면 null */
+export async function exportBackup(store: Store, adminRawName: string): Promise<Backup | null> {
+  if (!(await requireAdmin(store, adminRawName))) return null;
+
+  const members = await ensureMembers(store);
+  const [requests, ledger] = await Promise.all([getRequests(store), getLedger(store)]);
+  const checks: Record<string, Checks> = {};
+  await Promise.all(
+    members.map(async (m) => {
+      checks[m.name] = await getChecks(store, m.name);
+    })
+  );
+
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    members,
+    requests,
+    ledger,
+    checks,
+  };
+}
+
+function isValidBackup(backup: unknown): backup is Backup {
+  if (!backup || typeof backup !== "object") return false;
+  const b = backup as Record<string, unknown>;
+  if (b.version !== 1) return false;
+  if (!Array.isArray(b.members) || b.members.length === 0) return false;
+
+  const names = new Set<string>();
+  let adminCount = 0;
+  for (const m of b.members) {
+    if (!m || typeof m !== "object") return false;
+    const mm = m as Record<string, unknown>;
+    if (typeof mm.name !== "string" || mm.name.trim() === "") return false;
+    if (typeof mm.isAdmin !== "boolean") return false;
+    if (names.has(mm.name)) return false;
+    names.add(mm.name);
+    if (mm.isAdmin) adminCount += 1;
+  }
+  if (adminCount !== 1) return false;
+
+  if (!Array.isArray(b.requests)) return false;
+  if (!Array.isArray(b.ledger)) return false;
+  if (!b.checks || typeof b.checks !== "object" || Array.isArray(b.checks)) return false;
+
+  return true;
+}
+
+export type RestoreResult = { ok: true } | { ok: false; reason: "forbidden" | "invalid" };
+
+/**
+ * 백업을 복원한다. 반쯤 복원된 저장소가 실패한 복원보다 더 나쁘므로,
+ * 아무것도 쓰기 전에 전체를 먼저 검증한다.
+ */
+export async function restoreBackup(
+  store: Store,
+  adminRawName: string,
+  backup: unknown
+): Promise<RestoreResult> {
+  if (!(await requireAdmin(store, adminRawName))) return { ok: false, reason: "forbidden" };
+  if (!isValidBackup(backup)) return { ok: false, reason: "invalid" };
+
+  await store.set("members", backup.members);
+  await store.set("requests", backup.requests);
+  await store.set("ledger", backup.ledger);
+  // checks는 새 명단에 있는 이름에 대해서만 복원한다 — 명단에서 빠진 사람의
+  // checks 항목은 의도적으로 버린다 (더 이상 조회할 방법이 없으므로 유지할 이유가 없다).
+  await Promise.all(
+    backup.members.map((m) => store.set(`checks/${m.name}`, backup.checks[m.name] ?? {}))
+  );
+
+  return { ok: true };
 }
 
 // ── 개발 전용: 단계 확인용 총점 조정 ────────────────────────
