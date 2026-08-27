@@ -31,11 +31,11 @@ describe("stageOf", () => {
     [200, 2],
     [399, 2],
     [400, 3],
-    [699, 3],
-    [700, 4],
-    [999, 4],
-    [1000, 5],
-    [1500, 5],
+    [549, 3],
+    [550, 4],
+    [699, 4],
+    [700, 5],
+    [900, 5],
   ])("total %i → stage %i", (total, stage) => {
     expect(stageOf(total)).toBe(stage);
   });
@@ -46,11 +46,11 @@ describe("nextThreshold", () => {
     expect(nextThreshold(0)).toBe(200);
     expect(nextThreshold(199)).toBe(200);
     expect(nextThreshold(200)).toBe(400);
-    expect(nextThreshold(999)).toBe(1000);
+    expect(nextThreshold(699)).toBe(700);
   });
   it("결실 후에는 null", () => {
-    expect(nextThreshold(1000)).toBeNull();
-    expect(nextThreshold(1200)).toBeNull();
+    expect(nextThreshold(700)).toBeNull();
+    expect(nextThreshold(900)).toBeNull();
   });
 });
 

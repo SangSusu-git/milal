@@ -31,6 +31,8 @@ export interface LedgerEntry {
   name: string;
   kind: LedgerKind;
   points: number;
+  /** 요청 승인 항목에서만 설정된다 — 요청 당시의 대상. 일일 체크·조정 항목에는 없다. */
+  target?: string;
 }
 
 /** 관리자 백업/복원 파일 형식 */

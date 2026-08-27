@@ -6,7 +6,7 @@ import type {
   Stage,
 } from "./types";
 
-export const MAX_POINTS = 1000;
+export const MAX_POINTS = 700;
 export const CHECK_POINTS = 1;
 
 export const REQUEST_POINTS: Record<RequestKind, number> = {
@@ -16,7 +16,7 @@ export const REQUEST_POINTS: Record<RequestKind, number> = {
 };
 
 /** 각 단계가 시작되는 점수. index 0 → 1단계 */
-export const STAGE_THRESHOLDS = [0, 200, 400, 700, 1000] as const;
+export const STAGE_THRESHOLDS = [0, 200, 400, 550, 700] as const;
 
 export const STAGE_INFO: Record<Stage, { title: string; caption: string }> = {
   1: { title: "햇빛 아래 씨앗", caption: "아직 땅에 심기지 않은 한 알의 밀" },

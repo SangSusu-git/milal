@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { api, getSavedName } from "@/lib/client";
-import { KIND_LABEL, REQUEST_POINTS } from "@/lib/rules";
-import type { FieldState, LedgerEntry, PendingRequest, RequestKind } from "@/lib/types";
+import { KIND_LABEL, REQUEST_POINTS, STAGE_INFO, STAGE_THRESHOLDS } from "@/lib/rules";
+import type { FieldState, LedgerEntry, PendingRequest, RequestKind, Stage } from "@/lib/types";
+import WheatScene from "@/components/WheatScene";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -35,6 +36,11 @@ const KIND_BADGE: Record<RequestKind, { emoji: string; className: string }> = {
 };
 
 const REQUEST_KIND_ORDER: RequestKind[] = ["prayer", "invite_remote", "invite_face"];
+const STAGE_ORDER: Stage[] = [1, 2, 3, 4, 5];
+
+type RequestHistory = Record<RequestKind, LedgerEntry[]>;
+
+const EMPTY_HISTORY: RequestHistory = { prayer: [], invite_remote: [], invite_face: [] };
 
 export default function AdminPage() {
   const router = useRouter();
@@ -46,18 +52,20 @@ export default function AdminPage() {
   const hydrated = useSyncExternalStore(subscribeToName, getHydrated, getHydratedServer);
   const [requests, setRequests] = useState<PendingRequest[] | null>(null);
   const [state, setState] = useState<FieldState | null>(null);
-  const [recent, setRecent] = useState<LedgerEntry[] | null>(null);
+  const [history, setHistory] = useState<RequestHistory | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [restoreFile, setRestoreFile] = useState<File | null>(null);
   const [restoring, setRestoring] = useState(false);
+  // 단계 미리보기 — 순수 클라이언트 상태. null이면 실제 단계를 보여준다.
+  const [previewStage, setPreviewStage] = useState<Stage | null>(null);
 
   const load = useCallback(async (who: string) => {
-    const [r, s, rec] = await Promise.all([
+    const [r, s, hist] = await Promise.all([
       api<PendingRequest[]>(`/api/admin/requests?name=${encodeURIComponent(who)}`),
       api<FieldState>(`/api/state?name=${encodeURIComponent(who)}`),
-      api<LedgerEntry[]>(`/api/admin/recent?name=${encodeURIComponent(who)}`),
+      api<RequestHistory>(`/api/admin/history?name=${encodeURIComponent(who)}`),
     ]);
     // 서버가 실제로 "관리자 아님"이라고 답했을 때만 리다이렉트한다 — 전송 실패(0)나
     // 5xx는 권한 없음이 아니므로 리다이렉트하지 않는다.
@@ -75,9 +83,9 @@ export default function AdminPage() {
     setLoadFailed(false);
     setRequests(r.data);
     setState(s.data);
-    // recent는 참고용 정보일 뿐이라 승인 워크플로를 막으면 안 된다 — 실패 시
-    // 이전 값을 유지하고(첫 로드라면 빈 배열로), r/s 성공 여부와 독립적으로 취급한다.
-    setRecent((prev) => (rec.status === 200 ? rec.data : (prev ?? [])));
+    // history는 참고용 정보일 뿐이라 승인 워크플로를 막으면 안 된다 — 실패 시
+    // 이전 값을 유지하고(첫 로드라면 빈 값으로), r/s 성공 여부와 독립적으로 취급한다.
+    setHistory((prev) => (hist.status === 200 ? hist.data : (prev ?? EMPTY_HISTORY)));
   }, [router]);
 
   useEffect(() => {
@@ -154,7 +162,7 @@ export default function AdminPage() {
     load(name);
   }
 
-  if (!state || !requests || !recent || !name) {
+  if (!state || !requests || !history || !name) {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-3 text-sm text-[var(--muted)]">
         <p>불러오는 중…</p>
@@ -174,6 +182,17 @@ export default function AdminPage() {
     );
   }
 
+  const displayStage = previewStage ?? state.stage;
+  const pendingByKind = REQUEST_KIND_ORDER.map((kind) => ({
+    kind,
+    rows: requests.filter((r) => r.kind === kind),
+  })).filter(({ rows }) => rows.length > 0);
+  const historyByKind = REQUEST_KIND_ORDER.map((kind) => ({
+    kind,
+    rows: history[kind],
+    total: history[kind].reduce((acc, e) => acc + e.points, 0),
+  })).filter(({ rows }) => rows.length > 0);
+
   return (
     <main className="flex flex-col gap-4 py-5">
       <header className="flex items-center justify-between px-1">
@@ -188,60 +207,63 @@ export default function AdminPage() {
           <h2 className="text-sm font-bold text-[var(--muted)]">대기 중 요청</h2>
           <span className="text-xs text-[var(--muted)]">{requests.length}건</span>
         </div>
-        {requests.length > 0 && (
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            {REQUEST_KIND_ORDER.map((kind) => ({ kind, count: requests.filter((r) => r.kind === kind).length }))
-              .filter(({ count }) => count > 0)
-              .map(({ kind, count }) => `${KIND_LABEL[kind]} ${count}`)
-              .join(" · ")}
-          </p>
-        )}
         {requests.length === 0 ? (
           <p className="mt-3 text-sm text-[var(--muted)]">처리할 요청이 없어요.</p>
         ) : (
-          <ul className="mt-3 flex flex-col gap-2">
-            {requests.map((r) => (
-              <li key={r.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/70 px-3 py-2.5">
-                <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-sm">
-                      <span className="text-xs font-normal text-[var(--muted)]">요청자 </span>
-                      <span className="font-semibold">{r.name}</span>
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${KIND_BADGE[r.kind].className}`}
-                    >
-                      <span aria-hidden="true">{KIND_BADGE[r.kind].emoji}</span>
-                      {KIND_LABEL[r.kind]}
-                    </span>
-                    <span className="text-xs font-bold text-[var(--wheat-deep)]">+{REQUEST_POINTS[r.kind]}</span>
-                  </p>
-                  <p className="mt-0.5 text-xs text-[var(--muted)]">
-                    대상 <span className="font-semibold text-[var(--ink)]">{r.target}</span>
-                  </p>
-                  <p className="mt-0.5 text-xs text-[var(--muted)]">{fmtTime(r.requestedAt)}</p>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <button
-                    type="button"
-                    disabled={busyId !== null}
-                    onClick={() => decideOne(r.id, true)}
-                    className="btn btn-primary px-3 py-2 text-sm"
-                  >
-                    승인
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busyId !== null}
-                    onClick={() => decideOne(r.id, false)}
-                    className="btn btn-ghost px-3 py-2 text-sm"
-                  >
-                    거절
-                  </button>
-                </div>
-              </li>
+          <div className="mt-3 flex flex-col gap-4">
+            {pendingByKind.map(({ kind, rows }) => (
+              <div key={kind}>
+                <h3 className="flex items-center gap-1.5 text-xs font-bold text-[var(--muted)]">
+                  <span aria-hidden="true">{KIND_BADGE[kind].emoji}</span>
+                  {KIND_LABEL[kind]}
+                  <span className="font-normal">· {rows.length}건</span>
+                </h3>
+                <ul className="mt-2 flex flex-col gap-2">
+                  {rows.map((r) => (
+                    <li key={r.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/70 px-3 py-2.5">
+                      <div className="min-w-0">
+                        <p className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-sm">
+                            <span className="text-xs font-normal text-[var(--muted)]">요청자 </span>
+                            <span className="font-semibold">{r.name}</span>
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${KIND_BADGE[r.kind].className}`}
+                          >
+                            <span aria-hidden="true">{KIND_BADGE[r.kind].emoji}</span>
+                            {KIND_LABEL[r.kind]}
+                          </span>
+                          <span className="text-xs font-bold text-[var(--wheat-deep)]">+{REQUEST_POINTS[r.kind]}</span>
+                        </p>
+                        <p className="mt-0.5 text-xs text-[var(--muted)]">
+                          대상 <span className="font-semibold text-[var(--ink)]">{r.target}</span>
+                        </p>
+                        <p className="mt-0.5 text-xs text-[var(--muted)]">{fmtTime(r.requestedAt)}</p>
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          disabled={busyId !== null}
+                          onClick={() => decideOne(r.id, true)}
+                          className="btn btn-primary px-3 py-2 text-sm"
+                        >
+                          승인
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busyId !== null}
+                          onClick={() => decideOne(r.id, false)}
+                          className="btn btn-ghost px-3 py-2 text-sm"
+                        >
+                          거절
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
@@ -260,35 +282,74 @@ export default function AdminPage() {
             <p className="text-xs text-[var(--muted)]">오늘 참여</p>
           </div>
         </div>
+      </section>
 
-        <div className="mt-5 border-t border-[rgba(124,74,45,0.12)] pt-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-[var(--muted)]">최근 반영 기록</h2>
-            <span className="text-xs text-[var(--muted)]">{recent.length}건</span>
+      <section className="card p-5">
+        <h2 className="text-sm font-bold text-[var(--muted)]">승인 기록</h2>
+        {historyByKind.length === 0 ? (
+          <p className="mt-3 text-sm text-[var(--muted)]">아직 승인된 요청이 없어요.</p>
+        ) : (
+          <div className="mt-3 flex flex-col gap-4">
+            {historyByKind.map(({ kind, rows, total }) => (
+              <div key={kind}>
+                <h3 className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-[var(--muted)]">
+                  <span aria-hidden="true">{KIND_BADGE[kind].emoji}</span>
+                  {KIND_LABEL[kind]}
+                  <span className="font-normal">
+                    · {rows.length}건 · +{total}
+                  </span>
+                </h3>
+                <ul className="mt-2 flex flex-col gap-1.5">
+                  {rows.map((entry, i) => (
+                    <li key={`${entry.at}-${i}`} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="shrink-0 text-xs text-[var(--muted)]">{fmtTime(entry.at)}</span>
+                      <span className="flex-1 truncate text-left">
+                        {entry.name} <span className="text-[var(--muted)]">→ {entry.target ?? "—"}</span>
+                      </span>
+                      <span className="shrink-0 font-bold tabular-nums text-[var(--wheat-deep)]">+{entry.points}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
-          {recent.length === 0 ? (
-            <p className="mt-3 text-sm text-[var(--muted)]">아직 기록이 없어요.</p>
-          ) : (
-            <ul className="mt-3 flex flex-col gap-1.5">
-              {recent.map((entry, i) => (
-                <li key={`${entry.at}-${i}`} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="shrink-0 text-xs text-[var(--muted)]">{fmtTime(entry.at)}</span>
-                  <span className="flex-1 truncate text-left">
-                    {entry.name} <span className="text-[var(--muted)]">· {KIND_LABEL[entry.kind]}</span>
-                  </span>
-                  <span
-                    className={`shrink-0 font-bold tabular-nums ${
-                      entry.points < 0 ? "text-red-600" : "text-[var(--wheat-deep)]"
-                    }`}
-                  >
-                    {entry.points >= 0 ? `+${entry.points}` : entry.points}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+        )}
+      </section>
+
+      <section className="card p-5">
+        <h2 className="text-sm font-bold text-[var(--muted)]">단계 미리보기</h2>
+        <div className="mt-3 grid grid-cols-5 gap-2">
+          {STAGE_ORDER.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setPreviewStage(s)}
+              className={`btn px-2 py-2 text-xs ${displayStage === s ? "btn-primary" : "btn-ghost"}`}
+            >
+              {STAGE_INFO[s].title}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-[var(--muted)]">미리보기예요. 실제 점수는 바뀌지 않아요.</p>
+        <div className="mt-4">
+          <WheatScene stage={displayStage} />
+          <p className="mt-2 text-sm font-bold">{STAGE_INFO[displayStage].title}</p>
+          <p className="text-xs text-[var(--muted)]">{STAGE_INFO[displayStage].caption}</p>
         </div>
       </section>
+
+      {isDev && (
+        <section className="card border-dashed p-5">
+          <h2 className="text-sm font-bold text-[var(--muted)]">테스트용 점수 조정 (개발 모드에서만 보임)</h2>
+          <div className="mt-3 grid grid-cols-5 gap-2">
+            {STAGE_THRESHOLDS.map((t) => (
+              <button key={t} type="button" onClick={() => setTotal(t)} className="btn btn-ghost px-2 py-2 text-sm">
+                {t}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="card p-5">
         <h2 className="text-sm font-bold text-[var(--muted)]">데이터 관리</h2>
@@ -322,19 +383,6 @@ export default function AdminPage() {
           실제 명단으로 바꾸려면: 백업을 내려받아 members를 수정한 뒤 복원하세요.
         </p>
       </section>
-
-      {isDev && (
-        <section className="card border-dashed p-5">
-          <h2 className="text-sm font-bold text-[var(--muted)]">테스트용 점수 조정 (개발 모드에서만 보임)</h2>
-          <div className="mt-3 grid grid-cols-5 gap-2">
-            {[0, 200, 400, 700, 1000].map((t) => (
-              <button key={t} type="button" onClick={() => setTotal(t)} className="btn btn-ghost px-2 py-2 text-sm">
-                {t}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
 
       {msg && (
         <div className="fade-up fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-medium text-white shadow-lg">

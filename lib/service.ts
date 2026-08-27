@@ -223,6 +223,7 @@ export async function decide(
       name: target.name,
       kind: target.kind,
       points: REQUEST_POINTS[target.kind],
+      target: target.target,
     });
   }
   return { ok: true, total: sumPoints(ledger) };
@@ -233,6 +234,31 @@ export async function recentLedger(store: Store, limit: number): Promise<LedgerE
   if (limit <= 0) return [];
   const ledger = await getLedger(store);
   return ledger.slice(-limit).reverse();
+}
+
+/**
+ * 요청 종류별 승인 기록, 각 종류별 최신순.
+ * 관리자가 아니면 null.
+ */
+export async function requestHistory(
+  store: Store,
+  adminRawName: string
+): Promise<Record<RequestKind, LedgerEntry[]> | null> {
+  if (!(await requireAdmin(store, adminRawName))) return null;
+
+  const ledger = await getLedger(store);
+  const grouped: Record<RequestKind, LedgerEntry[]> = {
+    prayer: [],
+    invite_remote: [],
+    invite_face: [],
+  };
+  for (const entry of ledger) {
+    if (isRequestKind(entry.kind)) grouped[entry.kind].push(entry);
+  }
+  for (const kind of Object.keys(grouped) as RequestKind[]) {
+    grouped[kind].reverse();
+  }
+  return grouped;
 }
 
 // ── 백업/복원 ───────────────────────────────────────────────

@@ -10,6 +10,7 @@ import {
   listRequests,
   decide,
   recentLedger,
+  requestHistory,
   setTotalDev,
   exportBackup,
   restoreBackup,
@@ -232,12 +233,17 @@ describe("requests & decide", () => {
     expect((await getState(store, OTHER, DAY1))!.me.points).toBe(7);
   });
 
-  it("승인 시 원장에는 요청자만 기록되고 대상은 남지 않는다", async () => {
+  it("승인 시 원장에는 대상도 함께 기록된다", async () => {
     await addRequest(store, USER, "prayer", "김영희", DAY1);
     const [r] = (await listRequests(store, ADMIN))!;
     await decide(store, ADMIN, r.id, true, DAY1);
     const recent = await recentLedger(store, 1);
-    expect(recent[0]).toMatchObject({ name: USER, kind: "prayer", points: 3 });
+    expect(recent[0]).toMatchObject({ name: USER, kind: "prayer", points: 3, target: "김영희" });
+  });
+
+  it("일일 체크 항목에는 target이 없다", async () => {
+    await check(store, USER, "bible", DAY1);
+    const recent = await recentLedger(store, 1);
     expect("target" in recent[0]).toBe(false);
   });
 
@@ -271,6 +277,52 @@ describe("requests & decide", () => {
   it("recentLedger(store, 0)은 원장이 비어있지 않아도 빈 배열", async () => {
     await check(store, USER, "bible", DAY1);
     expect(await recentLedger(store, 0)).toEqual([]);
+  });
+});
+
+describe("requestHistory", () => {
+  let store: Store;
+  beforeEach(() => {
+    store = createMemoryStore();
+  });
+
+  it("비관리자는 null", async () => {
+    expect(await requestHistory(store, USER)).toBeNull();
+    expect(await requestHistory(store, "홍길동")).toBeNull();
+  });
+
+  it("종류별로 묶이고 각 그룹은 최신순이다", async () => {
+    await addRequest(store, USER, "prayer", "김영희", DAY1);
+    const [r1] = (await listRequests(store, ADMIN))!;
+    await decide(store, ADMIN, r1.id, true, DAY1);
+
+    await addRequest(store, USER, "prayer", "박철수", DAY1);
+    const [r2] = (await listRequests(store, ADMIN))!;
+    await decide(store, ADMIN, r2.id, true, DAY1_LATE);
+
+    await addRequest(store, OTHER, "invite_face", "이순신", DAY1);
+    const [r3] = (await listRequests(store, ADMIN))!;
+    await decide(store, ADMIN, r3.id, true, DAY1);
+
+    const history = (await requestHistory(store, ADMIN))!;
+    expect(history.prayer).toHaveLength(2);
+    expect(history.prayer[0]).toMatchObject({ target: "박철수", at: DAY1_LATE.toISOString() });
+    expect(history.prayer[1]).toMatchObject({ target: "김영희", at: DAY1.toISOString() });
+    expect(history.invite_face).toHaveLength(1);
+    expect(history.invite_face[0]).toMatchObject({ target: "이순신", name: OTHER });
+    expect(history.invite_remote).toEqual([]);
+  });
+
+  it("일일 체크 항목은 기록에 나타나지 않는다", async () => {
+    await check(store, USER, "bible", DAY1);
+    await addRequest(store, USER, "prayer", "김영희", DAY1);
+    const [r] = (await listRequests(store, ADMIN))!;
+    await decide(store, ADMIN, r.id, true, DAY1);
+
+    const history = (await requestHistory(store, ADMIN))!;
+    const all = [...history.prayer, ...history.invite_remote, ...history.invite_face];
+    expect(all).toHaveLength(1);
+    expect(all.some((e) => e.kind === "bible" || e.kind === "resolve")).toBe(false);
   });
 });
 
