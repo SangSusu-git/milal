@@ -37,6 +37,9 @@ npm test           # 규칙·저장소·서비스 단위 테스트
 내려받아 JSON의 `members`를 실제 이름과 관리자 1명(`isAdmin: true`)으로 고친 뒤 복원하세요. 복원은
 `members`·`requests`·`ledger`·`checks`를 통째로 교체합니다.
 
+실제 명단을 `lib/members.ts`에 넣지 않는 이유: 이 레포는 public이라 코드에 넣으면 실명이 공개됩니다.
+실명은 저장소(Redis)에만 두고, 복원용 JSON 파일은 레포 밖에 보관하세요.
+
 ## 수동 테스트 순서
 
 1. 명단에 없는 이름 → "명단에 없는 이름입니다"
