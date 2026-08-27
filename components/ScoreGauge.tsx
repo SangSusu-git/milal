@@ -3,7 +3,7 @@ import { MAX_POINTS, STAGE_THRESHOLDS, nextThreshold } from "@/lib/rules";
 /**
  * 밭 안(삽화 왼쪽)에 얹히는 세로 점수 게이지.
  *
- * 눈금은 0~1000 전체가 아니라 **지금 단계 구간만** 보여준다. 예를 들어 13점이면
+ * 눈금은 0~최대점수 전체가 아니라 **지금 단계 구간만** 보여준다. 예를 들어 13점이면
  * 0~200(씨앗이 땅에 심길 때까지), 250점이면 200~400 구간이다. 다음 변화까지
  * 얼마나 남았는지가 막대 높이로 바로 읽히게 하려는 것.
  *
@@ -29,7 +29,7 @@ export default function ScoreGauge({ total, className }: { total: number; classN
       `}</style>
 
       <p className="text-[13px] font-black leading-none tabular-nums text-[var(--wheat-deep)]">{total}</p>
-      {/* 결실(1000점 이상)에는 다음 기준점이 없어 위아래 라벨이 같은 숫자로 겹친다 */}
+      {/* 결실(최대 점수 이상)에는 다음 기준점이 없어 위아래 라벨이 같은 숫자로 겹친다 */}
       <p className="text-[9px] leading-none text-[var(--muted)]">{next === null ? "결실" : top}</p>
 
       <div
