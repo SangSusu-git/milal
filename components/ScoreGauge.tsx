@@ -63,8 +63,6 @@ export default function ScoreGauge({ total, className }: { total: number; classN
 
       <p className="text-[13px] font-black leading-none tabular-nums text-[var(--wheat-deep)]">{shownTotal}</p>
 
-      {/* 막대는 왼쪽에 붙이고, 눈금 이모지·목표 배지는 눈금선 오른쪽에 둔다 —
-          막대 위에 겹치면 채워진 색이나 현재 점수를 가리기 때문 */}
       <div className="relative w-full flex-1">
         <div
           role="progressbar"
@@ -72,7 +70,7 @@ export default function ScoreGauge({ total, className }: { total: number; classN
           aria-valuemax={MAX_POINTS}
           aria-valuenow={Math.min(total, MAX_POINTS)}
           aria-label={`0점에서 ${MAX_POINTS}점까지의 진행도`}
-          className="absolute bottom-0 left-1 top-0 w-2 overflow-hidden rounded-full bg-[rgba(124,74,45,0.14)]"
+          className="absolute bottom-0 left-1/2 top-0 w-2 -translate-x-1/2 overflow-hidden rounded-full bg-[rgba(124,74,45,0.14)]"
         >
           <div
             className="score-gauge-fill absolute bottom-0 left-0 w-full rounded-full bg-gradient-to-t from-[var(--leaf)] via-[var(--wheat)] to-[var(--wheat-deep)]"
@@ -93,26 +91,21 @@ export default function ScoreGauge({ total, className }: { total: number; classN
               <div
                 className={
                   isGoal
-                    ? "absolute left-0 h-[2px] w-4 rounded bg-[var(--wheat-deep)]"
-                    : "absolute left-0 h-px w-4 bg-[rgba(124,74,45,0.35)]"
+                    ? "h-[2px] w-full rounded bg-[var(--wheat-deep)]"
+                    : "h-px w-full bg-[rgba(124,74,45,0.3)]"
                 }
               />
-              {isGoal ? (
+              {isGoal && (
                 // 맨 위(최대 점수) 눈금이면 현재 점수 숫자와 겹치지 않게 선 아래로 붙인다
                 <span
-                  className={`absolute left-[18px] top-0 flex flex-col items-center leading-none ${
-                    t === MAX_POINTS ? "translate-y-0 pt-0.5" : "-translate-y-1/2"
+                  className={`absolute left-1/2 top-0 flex -translate-x-1/2 flex-col items-center leading-none ${
+                    t === MAX_POINTS ? "translate-y-0 pt-1" : "-translate-y-full pb-0.5"
                   }`}
                 >
-                  <span className="text-[11px]">{TICK_EMOJI[t]}</span>
+                  <span className="text-[12px]">{TICK_EMOJI[t]}</span>
                   <span className="mt-0.5 rounded-full bg-white/85 px-1 text-[8px] font-bold tabular-nums text-[var(--wheat-deep)]">
                     {next === null ? "결실" : t}
                   </span>
-                </span>
-              ) : (
-                // 지나온(또는 아직 먼) 눈금에도 어떤 단계였는지 작은 이모지를 남긴다
-                <span className="absolute left-[19px] top-0 -translate-y-1/2 text-[10px] leading-none opacity-70">
-                  {TICK_EMOJI[t]}
                 </span>
               )}
             </div>
