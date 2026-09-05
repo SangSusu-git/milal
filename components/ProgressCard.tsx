@@ -1,7 +1,10 @@
 import { STAGE_INFO, nextThreshold } from "@/lib/rules";
 import type { Stage } from "@/lib/types";
 
-/** 한 줄짜리 단계 표시 — 체크 버튼이 첫 화면에 보이도록 최대한 낮게 유지한다. */
+/**
+ * 한 줄짜리 단계 표시 — 밭 카드 맨 아래에 캡션처럼 붙는다.
+ * 카드 스타일은 부모(밭 카드)가 갖고 있으므로 여기는 구분선 있는 줄만 그린다.
+ */
 export default function ProgressCard({
   total,
   stage,
@@ -11,7 +14,7 @@ export default function ProgressCard({
 }) {
   const next = nextThreshold(total);
   return (
-    <section className="card flex items-center justify-between gap-2 px-4 py-2.5">
+    <section className="flex items-center justify-between gap-2 border-t border-[rgba(124,74,45,0.1)] bg-white/60 px-4 py-2.5">
       <p className="min-w-0 truncate text-sm">
         <span className="font-semibold text-[var(--muted)]">{stage}단계</span>
         <span className="mx-1.5 text-[var(--muted)]">·</span>

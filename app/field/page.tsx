@@ -219,25 +219,28 @@ export default function FieldPage() {
         </div>
       </header>
 
-      <section className="card relative overflow-hidden p-0">
-        <div key={stageKey} className="fade-up">
-          <WheatScene stage={state.stage} cool={sunCool} />
+      <section className="card overflow-hidden p-0">
+        {/* 그림 영역 — 게이지·이펙트는 이 안에서만 겹친다 (아래 캡션 줄은 침범 안 함) */}
+        <div className="relative">
+          <div key={stageKey} className="fade-up">
+            <WheatScene stage={state.stage} cool={sunCool} />
+          </div>
+          {/* 밭을 탭하면 그 자리에 물 주는 구름 이펙트 — 게이지보다 아래에 둬서 게이지 탭을 안 가로챈다 */}
+          <TapEffects onSunTap={onSunTap} />
+          {/* 게이지는 밭 안에 얹는다. 해가 오른쪽에 뜨므로 왼쪽에 둔다. */}
+          <ScoreGauge total={state.total} className="absolute bottom-3 left-3 top-3 w-11" />
+          {floating && (
+            <span
+              key={floating.id}
+              className="float-up pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 text-3xl font-black text-[var(--wheat-deep)] drop-shadow"
+            >
+              {floating.text}
+            </span>
+          )}
         </div>
-        {/* 밭을 탭하면 그 자리에 물 주는 구름 이펙트 — 게이지보다 아래에 둬서 게이지 탭을 안 가로챈다 */}
-        <TapEffects onSunTap={onSunTap} />
-        {/* 게이지는 밭 안에 얹는다. 해가 오른쪽에 뜨므로 왼쪽에 둔다. */}
-        <ScoreGauge total={state.total} className="absolute bottom-3 left-3 top-3 w-11" />
-        {floating && (
-          <span
-            key={floating.id}
-            className="float-up pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 text-3xl font-black text-[var(--wheat-deep)] drop-shadow"
-          >
-            {floating.text}
-          </span>
-        )}
+        {/* 단계 정보는 같은 카드의 캡션으로 */}
+        <ProgressCard total={state.total} stage={state.stage} />
       </section>
-
-      <ProgressCard total={state.total} stage={state.stage} />
 
       <CheckButtons
         bible={state.me.bible}
