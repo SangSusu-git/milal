@@ -134,7 +134,16 @@ function Sparkles() {
   );
 }
 
-export default function WheatScene({ stage, className }: { stage: Stage; className?: string }) {
+/** cool이 켜지면 해가 잠깐 썬글라스를 끼고 씩 웃는다 (😎) — 밭 화면의 해 탭 이펙트용 */
+export default function WheatScene({
+  stage,
+  className,
+  cool = false,
+}: {
+  stage: Stage;
+  className?: string;
+  cool?: boolean;
+}) {
   const p = PALETTE[stage];
   const sun = SUN_POS[stage];
   const buried = stage >= 2;
@@ -197,6 +206,30 @@ export default function WheatScene({ stage, className }: { stage: Stage; classNa
             return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={p.sun} strokeWidth="3" strokeLinecap="round" opacity="0.7" />;
           })}
         <circle cx={sun.cx} cy={sun.cy} r={sun.r} fill={p.sun} />
+        {/* 탭 판정용 투명 원 — TapEffects가 elementsFromPoint로 data-sun을 찾는다 */}
+        <circle data-sun cx={sun.cx} cy={sun.cy} r={sun.r * 1.3} fill="transparent" />
+        {cool && (
+          <g className="sun-cool-pop" pointerEvents="none">
+            <style>{`
+              .sun-cool-pop { transform-box: fill-box; transform-origin: center; animation: sun-cool-pop 0.28s ease-out; }
+              @keyframes sun-cool-pop {
+                0% { transform: translateY(-8px) scale(0.6); opacity: 0; }
+                100% { transform: none; opacity: 1; }
+              }
+            `}</style>
+            {/* 썬글라스 — 렌즈 둘, 브리지, 다리 */}
+            <rect x={sun.cx - sun.r * 0.78} y={sun.cy - sun.r * 0.36} width={sun.r * 0.62} height={sun.r * 0.48} rx={sun.r * 0.16} fill="#26221f" />
+            <rect x={sun.cx + sun.r * 0.16} y={sun.cy - sun.r * 0.36} width={sun.r * 0.62} height={sun.r * 0.48} rx={sun.r * 0.16} fill="#26221f" />
+            <path d={`M ${sun.cx - sun.r * 0.16} ${sun.cy - sun.r * 0.22} Q ${sun.cx} ${sun.cy - sun.r * 0.34} ${sun.cx + sun.r * 0.16} ${sun.cy - sun.r * 0.22}`} stroke="#26221f" strokeWidth={sun.r * 0.09} fill="none" />
+            <line x1={sun.cx - sun.r * 0.78} y1={sun.cy - sun.r * 0.2} x2={sun.cx - sun.r * 0.98} y2={sun.cy - sun.r * 0.3} stroke="#26221f" strokeWidth={sun.r * 0.08} strokeLinecap="round" />
+            <line x1={sun.cx + sun.r * 0.78} y1={sun.cy - sun.r * 0.2} x2={sun.cx + sun.r * 0.98} y2={sun.cy - sun.r * 0.3} stroke="#26221f" strokeWidth={sun.r * 0.08} strokeLinecap="round" />
+            {/* 렌즈 하이라이트 */}
+            <ellipse cx={sun.cx - sun.r * 0.55} cy={sun.cy - sun.r * 0.24} rx={sun.r * 0.1} ry={sun.r * 0.06} fill="#fff" opacity="0.3" />
+            <ellipse cx={sun.cx + sun.r * 0.39} cy={sun.cy - sun.r * 0.24} rx={sun.r * 0.1} ry={sun.r * 0.06} fill="#fff" opacity="0.3" />
+            {/* 씩 웃는 입 */}
+            <path d={`M ${sun.cx - sun.r * 0.42} ${sun.cy + sun.r * 0.34} Q ${sun.cx} ${sun.cy + sun.r * 0.82} ${sun.cx + sun.r * 0.46} ${sun.cy + sun.r * 0.3}`} stroke="#8a4b12" strokeWidth={sun.r * 0.11} fill="none" strokeLinecap="round" />
+          </g>
+        )}
 
         {/* 먼 언덕 */}
         <path d="M 0 190 C 60 160, 120 170, 180 180 C 240 190, 300 160, 360 178 L 360 300 L 0 300 Z" fill={p.hillFar} opacity="0.9" />

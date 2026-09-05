@@ -42,6 +42,9 @@ export default function FieldPage() {
   const [floating, setFloating] = useState<{ id: number; text: string } | null>(null);
   const prevStage = useRef<number | null>(null);
   const [stageKey, setStageKey] = useState(0);
+  // 해를 탭하면 잠깐 썬글라스를 낀다 — 순수 장식
+  const [sunCool, setSunCool] = useState(false);
+  const sunTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 연속된 새로고침 실패 동안 토스트를 한 번만 띄우기 위한 플래그. 성공하면 초기화된다.
   const toastedForFailureRef = useRef(false);
 
@@ -162,6 +165,12 @@ export default function FieldPage() {
     }
   }
 
+  function onSunTap() {
+    if (sunTimerRef.current) clearTimeout(sunTimerRef.current);
+    setSunCool(true);
+    sunTimerRef.current = setTimeout(() => setSunCool(false), 1500);
+  }
+
   function logout() {
     clearName();
     router.replace("/");
@@ -212,10 +221,10 @@ export default function FieldPage() {
 
       <section className="card relative overflow-hidden p-0">
         <div key={stageKey} className="fade-up">
-          <WheatScene stage={state.stage} />
+          <WheatScene stage={state.stage} cool={sunCool} />
         </div>
         {/* 밭을 탭하면 그 자리에 물 주는 구름 이펙트 — 게이지보다 아래에 둬서 게이지 탭을 안 가로챈다 */}
-        <TapEffects />
+        <TapEffects onSunTap={onSunTap} />
         {/* 게이지는 밭 안에 얹는다. 해가 오른쪽에 뜨므로 왼쪽에 둔다. */}
         <ScoreGauge total={state.total} className="absolute bottom-3 left-3 top-3 w-11" />
         {floating && (

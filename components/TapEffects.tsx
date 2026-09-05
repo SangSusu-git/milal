@@ -20,7 +20,10 @@ type Fx = {
 
 const LIFETIME_MS = 1400;
 
-export default function TapEffects() {
+/**
+ * onSunTap: 탭 지점 아래에 data-sun 요소(해)가 있으면 물 이펙트 대신 이 콜백을 부른다.
+ */
+export default function TapEffects({ onSunTap }: { onSunTap?: () => void } = {}) {
   const [fx, setFx] = useState<Fx | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -32,6 +35,11 @@ export default function TapEffects() {
   );
 
   function spawn(e: React.PointerEvent<HTMLDivElement>) {
+    // 해를 탭했으면 물 대신 해 이펙트 — 물 이펙트 재생 여부와 무관하게 동작한다
+    if (onSunTap && document.elementsFromPoint(e.clientX, e.clientY).some((el) => el.closest?.("[data-sun]"))) {
+      onSunTap();
+      return;
+    }
     if (fx) return; // 재생 중에는 무시 — 끝나면 다시 받는다
     const rect = e.currentTarget.getBoundingClientRect();
     const kind = Math.random() < 0.5 ? "cloud" : "can";
