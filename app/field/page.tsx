@@ -256,10 +256,6 @@ export default function FieldPage() {
         onOpen={(kind) => setRequestDialog(kind)}
       />
 
-      <footer className="px-1 pt-2 text-center text-xs text-[var(--muted)]">
-        오늘 {state.todayCount}/{state.memberCount}명 참여 · 누적 {state.total}점
-      </footer>
-
       {toast && (
         <div className="fade-up fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-medium text-white shadow-lg">
           {toast}
