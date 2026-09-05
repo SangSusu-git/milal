@@ -45,6 +45,28 @@ export interface Backup {
   checks: Record<string, Checks>; // 이름 → 체크
 }
 
+/** 모니터링 화면에서 쓰는, 한 사람의 점수 현황 */
+export interface MonitorUser {
+  name: string;
+  /** 항목별 누적 점수 (adjust 제외) */
+  byKind: Record<CheckKind | RequestKind, number>;
+  total: number;
+  /** 날짜(KST)별 획득 점수, 최신 날짜부터 */
+  days: { date: string; points: number }[];
+  /** 개별 획득 기록, 최신순 */
+  entries: { date: string; kind: CheckKind | RequestKind; points: number; target?: string }[];
+}
+
+export interface MonitorData {
+  today: string;
+  /** 전체 누적 총점 (개발용 조정 포함 — 밭 화면과 같은 값) */
+  total: number;
+  /** 총점 내림차순, 같으면 이름순. 명단 전원 포함 (0점도) */
+  users: MonitorUser[];
+  /** 날짜(KST)별 전체 획득 점수와 참여 인원, 최신 날짜부터 */
+  days: { date: string; points: number; people: number }[];
+}
+
 export interface FieldState {
   today: string;
   total: number;

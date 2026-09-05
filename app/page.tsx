@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getSavedName, saveName } from "@/lib/client";
 import { SEED_MEMBERS } from "@/lib/members";
+import { MONITOR_NAME } from "@/lib/rules";
 
 export default function EnterPage() {
   const router = useRouter();
@@ -14,7 +15,8 @@ export default function EnterPage() {
   const isDev = process.env.NODE_ENV !== "production";
 
   useEffect(() => {
-    if (getSavedName()) router.replace("/field");
+    const saved = getSavedName();
+    if (saved) router.replace(saved === MONITOR_NAME ? "/monitor" : "/field");
   }, [router]);
 
   async function submit(e: React.FormEvent) {
@@ -26,13 +28,13 @@ export default function EnterPage() {
     }
     setBusy(true);
     try {
-      const { status, data } = await api<{ ok: boolean; name?: string }>("/api/login", {
+      const { status, data } = await api<{ ok: boolean; name?: string; monitor?: boolean }>("/api/login", {
         method: "POST",
         body: { name },
       });
       if (status === 200 && data.ok && data.name) {
         saveName(data.name);
-        router.replace("/field");
+        router.replace(data.monitor ? "/monitor" : "/field");
       } else if (status === 404) {
         setError("명단에 없는 이름입니다");
       } else if (status === 0) {

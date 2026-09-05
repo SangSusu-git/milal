@@ -13,6 +13,7 @@ import type {
 import { ensureMembers, findMember } from "./members";
 import {
   CHECK_POINTS,
+  MONITOR_NAME,
   REQUEST_POINTS,
   isCheckKind,
   isRequestKind,
@@ -20,6 +21,7 @@ import {
   sumPoints,
   todayKST,
 } from "./rules";
+import type { MonitorData, MonitorUser } from "./types";
 
 // ── 읽기 헬퍼 ───────────────────────────────────────────────
 
@@ -47,10 +49,14 @@ async function appendLedger(store: Store, entry: LedgerEntry): Promise<LedgerEnt
 // ── 로그인 ──────────────────────────────────────────────────
 
 export type LoginResult =
-  | { ok: true; name: string; isAdmin: boolean }
+  | { ok: true; name: string; isAdmin: boolean; monitor?: true }
   | { ok: false };
 
 export async function login(store: Store, rawName: string): Promise<LoginResult> {
+  // 히든 조회 계정 — 명단보다 먼저 처리해 명단과 무관하게 항상 들어갈 수 있다.
+  if (rawName.trim() === MONITOR_NAME) {
+    return { ok: true, name: MONITOR_NAME, isAdmin: false, monitor: true };
+  }
   const members = await ensureMembers(store);
   const member = findMember(members, rawName);
   if (!member) return { ok: false };
@@ -259,6 +265,74 @@ export async function requestHistory(
     grouped[kind].reverse();
   }
   return grouped;
+}
+
+// ── 모니터링 ────────────────────────────────────────────────
+
+/**
+ * 사용자별·날짜별 점수 현황. "모니터링" 또는 관리자만 볼 수 있다 — 아니면 null.
+ * 개발용 조정(adjust)은 사용자/날짜 집계에서 빼고 전체 총점에만 반영한다.
+ */
+export async function monitorData(
+  store: Store,
+  rawName: string,
+  now: Date = new Date()
+): Promise<MonitorData | null> {
+  const members = await ensureMembers(store);
+  const isMonitor = rawName.trim() === MONITOR_NAME;
+  if (!isMonitor && !findMember(members, rawName)?.isAdmin) return null;
+
+  const ledger = await getLedger(store);
+
+  const byName = new Map<string, MonitorUser>();
+  for (const m of members) {
+    byName.set(m.name, {
+      name: m.name,
+      byKind: { bible: 0, resolve: 0, prayer: 0, invite_remote: 0, invite_face: 0 },
+      total: 0,
+      days: [],
+      entries: [],
+    });
+  }
+
+  const userDayPoints = new Map<string, Map<string, number>>(); // 이름 → (날짜 → 점수)
+  const allDayPoints = new Map<string, { points: number; people: Set<string> }>();
+
+  for (const entry of ledger) {
+    if (entry.kind === "adjust") continue;
+    const user = byName.get(entry.name);
+    if (!user) continue; // 명단에서 빠진 이름의 기록은 조회 대상이 없다
+    const date = todayKST(new Date(entry.at));
+
+    user.byKind[entry.kind] += entry.points;
+    user.total += entry.points;
+    user.entries.push({ date, kind: entry.kind, points: entry.points, target: entry.target });
+
+    const days = userDayPoints.get(entry.name) ?? new Map<string, number>();
+    days.set(date, (days.get(date) ?? 0) + entry.points);
+    userDayPoints.set(entry.name, days);
+
+    const all = allDayPoints.get(date) ?? { points: 0, people: new Set<string>() };
+    all.points += entry.points;
+    all.people.add(entry.name);
+    allDayPoints.set(date, all);
+  }
+
+  for (const user of byName.values()) {
+    user.entries.reverse(); // 장부는 오래된 순이므로 뒤집으면 최신순
+    user.days = [...(userDayPoints.get(user.name) ?? new Map<string, number>())]
+      .map(([date, points]) => ({ date, points }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  const users = [...byName.values()].sort(
+    (a, b) => b.total - a.total || a.name.localeCompare(b.name, "ko")
+  );
+  const days = [...allDayPoints]
+    .map(([date, v]) => ({ date, points: v.points, people: v.people.size }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  return { today: todayKST(now), total: sumPoints(ledger), users, days };
 }
 
 // ── 백업/복원 ───────────────────────────────────────────────

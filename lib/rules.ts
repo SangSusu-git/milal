@@ -9,6 +9,12 @@ import type {
 export const MAX_POINTS = 700;
 export const CHECK_POINTS = 1;
 
+/**
+ * 히든 조회 전용 이름. 명단에 없고 명단 수에도 안 잡히며,
+ * 이 이름으로 들어오면 밭 대신 점수 현황 화면을 본다.
+ */
+export const MONITOR_NAME = "모니터링";
+
 export const REQUEST_POINTS: Record<RequestKind, number> = {
   prayer: 3,
   invite_remote: 5,

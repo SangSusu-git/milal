@@ -10,6 +10,7 @@ import CheckButtons from "@/components/CheckButtons";
 import RequestButtons from "@/components/RequestButtons";
 import RequestDialog from "@/components/RequestDialog";
 import { api, clearName, getSavedName } from "@/lib/client";
+import { MONITOR_NAME } from "@/lib/rules";
 import type { CheckKind, FieldState, RequestKind } from "@/lib/types";
 
 // 켜둔 화면은 15초마다, 다른 앱에서 돌아오면 즉시 갱신한다.
@@ -72,6 +73,10 @@ export default function FieldPage() {
     if (!hydrated) return; // 아직 클라이언트 스냅샷 전 — 판단하지 않는다
     if (!name) {
       router.replace("/");
+      return;
+    }
+    if (name === MONITOR_NAME) {
+      router.replace("/monitor"); // 히든 조회 계정은 밭이 아니라 현황 화면으로
       return;
     }
     (async () => {
