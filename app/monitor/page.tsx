@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { api, clearName, getSavedName } from "@/lib/client";
 import { KIND_LABEL } from "@/lib/rules";
-import type { CheckKind, MonitorData, RequestKind } from "@/lib/types";
+import type { CheckKind, MonitorData, MonitorUser, RequestKind } from "@/lib/types";
 
 const REFRESH_MS = 30_000;
 
@@ -20,6 +20,23 @@ const KIND_EMOJI: Record<CheckKind | RequestKind, string> = {
   invite_remote: "💬",
   invite_face: "🤝",
 };
+
+/** 한 사람의 기록을 날짜×항목 표의 행으로 — 최신 날짜가 위로 */
+function dayRows(u: MonitorUser) {
+  const byDate = new Map<string, Record<CheckKind | RequestKind, number>>();
+  for (const e of u.entries) {
+    const row = byDate.get(e.date) ?? { bible: 0, resolve: 0, prayer: 0, invite_remote: 0, invite_face: 0 };
+    row[e.kind] += e.points;
+    byDate.set(e.date, row);
+  }
+  return [...byDate]
+    .map(([date, byKind]) => ({
+      date,
+      byKind,
+      total: KINDS.reduce((acc, k) => acc + byKind[k], 0),
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
 
 /** "2026-09-05" → "9/5 (토)" */
 function formatDate(date: string): string {
@@ -200,20 +217,39 @@ export default function MonitorPage() {
                 <span className="font-semibold">{u.name}</span>
                 <span className="font-bold tabular-nums text-[var(--wheat-deep)]">{u.total}점</span>
               </summary>
-              <ul className="divide-y divide-[rgba(124,74,45,0.06)] border-t border-[rgba(124,74,45,0.1)] px-4">
-                {u.entries.map((e, i) => (
-                  <li key={i} className="flex items-center gap-2 py-2 text-sm">
-                    <span className="w-16 shrink-0 text-xs text-[var(--muted)]">{formatDate(e.date)}</span>
-                    <span className="min-w-0 flex-1 truncate">
-                      {KIND_EMOJI[e.kind]} {KIND_LABEL[e.kind]}
-                      {e.target && <span className="text-[var(--muted)]"> → {e.target}</span>}
-                    </span>
-                    <span className="shrink-0 font-semibold tabular-nums text-[var(--wheat-deep)]">
-                      +{e.points}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="overflow-x-auto border-t border-[rgba(124,74,45,0.1)] px-4 pb-3">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[rgba(124,74,45,0.12)] text-xs text-[var(--muted)]">
+                      <th className="py-2 pr-2 text-left font-semibold">날짜</th>
+                      {KINDS.map((k) => (
+                        <th key={k} className="px-1 py-2 text-center font-semibold" title={KIND_LABEL[k]}>
+                          {KIND_EMOJI[k]}
+                        </th>
+                      ))}
+                      <th className="py-2 pl-2 text-right font-semibold">합계</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dayRows(u).map((row) => (
+                      <tr key={row.date} className="border-b border-[rgba(124,74,45,0.06)] last:border-0">
+                        <td className="py-2 pr-2 text-xs text-[var(--muted)]">{formatDate(row.date)}</td>
+                        {KINDS.map((k) => (
+                          <td
+                            key={k}
+                            className={`px-1 py-2 text-center tabular-nums ${row.byKind[k] === 0 ? "text-[rgba(124,74,45,0.25)]" : ""}`}
+                          >
+                            {row.byKind[k]}
+                          </td>
+                        ))}
+                        <td className="py-2 pl-2 text-right font-bold tabular-nums text-[var(--wheat-deep)]">
+                          {row.total}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </details>
           ))}
           <p className="px-1 pt-1 text-xs text-[var(--muted)]">이름을 누르면 상세 기록이 열려요</p>
