@@ -46,7 +46,7 @@ export default function TapEffects() {
         dx:
           kind === "cloud"
             ? -20 + i * 16 + (Math.random() * 10 - 5)
-            : -42 + i * 13 + (Math.random() * 8 - 4),
+            : -18 + i * 9 + (Math.random() * 8 - 4), // 물뿌리개 주둥이(탭 지점 왼쪽 위) 아래로
         delay: 0.12 + i * 0.14 + Math.random() * 0.08,
       })),
     });
@@ -115,7 +115,21 @@ export default function TapEffects() {
           {fx.kind === "cloud" ? (
             <span className="fx-cloud">☁️</span>
           ) : (
-            <span className="fx-can">🚿</span>
+            // 물뿌리개 이모지는 유니코드에 없어 직접 그린다 — 파란 양철 물뿌리개
+            <span className="fx-can">
+              <svg viewBox="0 0 64 52" width="52" height="42" xmlns="http://www.w3.org/2000/svg">
+                <path d="M26 24 L9 11 L4 17 L22 31 Z" fill="#3b82c4" />
+                <circle cx="7.5" cy="14" r="6" fill="#2f6ea6" />
+                <circle cx="5.5" cy="12" r="1" fill="#bfe0f7" />
+                <circle cx="9.5" cy="11.5" r="1" fill="#bfe0f7" />
+                <circle cx="7" cy="16.5" r="1" fill="#bfe0f7" />
+                <rect x="22" y="16" width="26" height="26" rx="7" fill="#4a94d8" />
+                <rect x="26" y="21" width="6" height="17" rx="3" fill="#7ab5e8" opacity="0.8" />
+                <path d="M47 22 q13 8 0 17" stroke="#2f6ea6" strokeWidth="4.5" fill="none" strokeLinecap="round" />
+                <ellipse cx="35" cy="16" rx="10" ry="3.5" fill="#2f6ea6" />
+                <ellipse cx="35" cy="15.4" rx="7" ry="2.2" fill="#1f5580" />
+              </svg>
+            </span>
           )}
           {fx.drops.map((d, i) => (
             <span key={i} className="fx-drop" style={{ left: d.dx, animationDelay: `${d.delay}s` }}>
