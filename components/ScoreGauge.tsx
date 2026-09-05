@@ -30,7 +30,7 @@ export default function ScoreGauge({ total, className }: { total: number; classN
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
   function replay() {
-    cancelAnimationFrame(rafRef.current);
+    if (progress < 1) return; // 재생 중에는 무시 — 끝나면 다시 받는다
     const DURATION_MS = 900;
     const startAt = performance.now();
     setProgress(0);

@@ -166,7 +166,7 @@ export default function FieldPage() {
   }
 
   function onSunTap() {
-    if (sunTimerRef.current) clearTimeout(sunTimerRef.current);
+    if (sunCool) return; // 재생 중에는 무시 — 끝나면 다시 받는다
     setSunCool(true);
     sunTimerRef.current = setTimeout(() => setSunCool(false), 1500);
   }
