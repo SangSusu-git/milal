@@ -7,6 +7,8 @@ export type Stage = 1 | 2 | 3 | 4 | 5;
 export interface Member {
   name: string;
   isAdmin: boolean;
+  /** 보기 전용 계정 — 점수 체크·요청이 서버에서부터 거부된다. */
+  isGuest?: boolean;
 }
 
 export interface DayCheck {
@@ -74,6 +76,7 @@ export interface FieldState {
   me: {
     name: string;
     isAdmin: boolean;
+    isGuest: boolean;
     points: number;
     bible: boolean;
     resolve: boolean;

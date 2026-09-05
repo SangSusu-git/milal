@@ -102,6 +102,7 @@ export async function getState(
     me: {
       name: me.name,
       isAdmin: me.isAdmin,
+      isGuest: me.isGuest === true,
       points: myPoints,
       bible: myDay.bible,
       resolve: myDay.resolve,
@@ -116,7 +117,7 @@ export async function getState(
 
 export type CheckResult =
   | { ok: true }
-  | { ok: false; reason: "bad_kind" | "unknown_member" | "already" };
+  | { ok: false; reason: "bad_kind" | "unknown_member" | "guest" | "already" };
 
 export async function check(
   store: Store,
@@ -128,6 +129,7 @@ export async function check(
   const members = await ensureMembers(store);
   const me = findMember(members, rawName);
   if (!me) return { ok: false, reason: "unknown_member" };
+  if (me.isGuest) return { ok: false, reason: "guest" };
 
   const today = todayKST(now);
   const checks = await getChecks(store, me.name);
@@ -152,7 +154,7 @@ export const REQUEST_TARGET_MAX_LEN = 40;
 
 export type AddRequestResult =
   | { ok: true; pendingCount: number }
-  | { ok: false; reason: "bad_kind" | "unknown_member" | "empty_target" | "target_too_long" };
+  | { ok: false; reason: "bad_kind" | "unknown_member" | "guest" | "empty_target" | "target_too_long" };
 
 export async function addRequest(
   store: Store,
@@ -165,6 +167,7 @@ export async function addRequest(
   const members = await ensureMembers(store);
   const me = findMember(members, rawName);
   if (!me) return { ok: false, reason: "unknown_member" };
+  if (me.isGuest) return { ok: false, reason: "guest" };
 
   // 대상은 자유 텍스트다 — 명단 밖의 사람을 위해 기도하거나 권유할 수도 있으므로
   // 명단과 대조하지 않는다.
@@ -373,6 +376,7 @@ function isValidBackup(backup: unknown): backup is Backup {
     const mm = m as Record<string, unknown>;
     if (typeof mm.name !== "string" || mm.name.trim() === "") return false;
     if (typeof mm.isAdmin !== "boolean") return false;
+    if (mm.isGuest !== undefined && typeof mm.isGuest !== "boolean") return false;
     if (names.has(mm.name)) return false;
     names.add(mm.name);
     if (mm.isAdmin) adminCount += 1;

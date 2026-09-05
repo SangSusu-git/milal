@@ -67,7 +67,7 @@ export default function EnterPage() {
           id="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="명단에 있는 이름을 입력하세요"
+          placeholder="이름을 입력하세요"
           autoComplete="off"
           enterKeyHint="go"
           className="mt-2 w-full rounded-xl border border-[rgba(124,74,45,0.18)] bg-white px-4 py-3 text-base outline-none focus:border-[var(--wheat)] focus:ring-2 focus:ring-[rgba(224,165,58,0.25)]"

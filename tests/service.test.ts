@@ -42,7 +42,7 @@ describe("getState", () => {
     expect(s.today).toBe("2026-08-21");
     expect(s.total).toBe(0);
     expect(s.stage).toBe(1);
-    expect(s.me).toEqual({ name: USER, isAdmin: false, points: 0, bible: false, resolve: false, pendingCount: 0 });
+    expect(s.me).toEqual({ name: USER, isAdmin: false, isGuest: false, points: 0, bible: false, resolve: false, pendingCount: 0 });
     expect(s.memberCount).toBe(30);
     expect(s.todayCount).toBe(0);
   });

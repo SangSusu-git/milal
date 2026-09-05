@@ -116,6 +116,10 @@ export default function FieldPage() {
 
   async function onCheck(kind: CheckKind) {
     if (!name) return;
+    if (state?.me.isGuest) {
+      showToast("게스트는 점수 반영이 안됩니다");
+      return;
+    }
     setBusyCheck(kind);
     const { status, data } = await api<FieldState | { error: string }>("/api/check", {
       method: "POST",
@@ -137,6 +141,12 @@ export default function FieldPage() {
 
   async function onRequestSubmit(kind: RequestKind, target: string) {
     if (!name) return;
+    // 게스트는 입력창까지는 열어보되, 보내기에서 안내만 하고 요청하지 않는다
+    if (state?.me.isGuest) {
+      setRequestDialog(null);
+      showToast("게스트는 점수 반영이 안됩니다");
+      return;
+    }
     setBusyRequest(kind);
     const { status } = await api("/api/request", { method: "POST", body: { name, kind, target } });
     setBusyRequest(null);
@@ -180,10 +190,12 @@ export default function FieldPage() {
     <main className="flex flex-col gap-4 py-5">
       <header className="flex items-center justify-between px-1">
         <div>
-          <p className="text-xs text-[var(--muted)]">{state.today} · 한국시간</p>
-          <h1 className="text-lg font-extrabold">
-            {name}님의 밭 {state.me.isAdmin && <span className="ml-1 text-xs font-semibold text-[var(--wheat-deep)]">관리자</span>}
-          </h1>
+          <p className="text-xs text-[var(--muted)]">
+            {state.today} · 한국시간 · {name}님
+            {state.me.isAdmin && <span className="ml-1 font-semibold text-[var(--wheat-deep)]">관리자</span>}
+            {state.me.isGuest && <span className="ml-1 font-semibold text-[var(--wheat-deep)]">보기 전용</span>}
+          </p>
+          <h1 className="text-lg font-extrabold">온유부의 밭</h1>
         </div>
         <div className="flex items-center gap-3 text-xs">
           {state.me.isAdmin && (
