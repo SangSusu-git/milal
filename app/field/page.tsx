@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { useRouter } from "next/navigation";
 import WheatScene from "@/components/WheatScene";
 import ScoreGauge from "@/components/ScoreGauge";
+import TapEffects from "@/components/TapEffects";
 import ProgressCard from "@/components/ProgressCard";
 import CheckButtons from "@/components/CheckButtons";
 import RequestButtons from "@/components/RequestButtons";
@@ -213,6 +214,8 @@ export default function FieldPage() {
         <div key={stageKey} className="fade-up">
           <WheatScene stage={state.stage} />
         </div>
+        {/* 밭을 탭하면 그 자리에 물 주는 구름 이펙트 — 게이지보다 아래에 둬서 게이지 탭을 안 가로챈다 */}
+        <TapEffects />
         {/* 게이지는 밭 안에 얹는다. 해가 오른쪽에 뜨므로 왼쪽에 둔다. */}
         <ScoreGauge total={state.total} className="absolute bottom-3 left-3 top-3 w-11" />
         {floating && (
