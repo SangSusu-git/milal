@@ -95,6 +95,12 @@ export default function ScoreGauge({ total, className }: { total: number; classN
                     : "h-px w-full bg-[rgba(124,74,45,0.3)]"
                 }
               />
+              {!isGoal && (
+                // 지나온(또는 아직 먼) 눈금에도 어떤 단계였는지 작은 이모지를 남긴다
+                <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full pb-px text-[10px] leading-none opacity-60">
+                  {TICK_EMOJI[t]}
+                </span>
+              )}
               {isGoal && (
                 <span className="absolute left-1/2 top-0 flex -translate-x-1/2 -translate-y-full flex-col items-center pb-0.5 leading-none">
                   <span className="text-[12px]">{TICK_EMOJI[t]}</span>
