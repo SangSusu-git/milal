@@ -15,6 +15,9 @@ export const CHECK_POINTS = 1;
  */
 export const MONITOR_NAME = "모니터링";
 
+/** 보너스 장부 항목의 name — 명단에 없는 예약 이름 */
+export const BONUS_NAME = "__bonus__";
+
 export const REQUEST_POINTS: Record<RequestKind, number> = {
   prayer: 3,
   invite_remote: 5,
@@ -38,6 +41,7 @@ export const KIND_LABEL: Record<LedgerKind, string> = {
   prayer: "기도부탁",
   invite_remote: "비대면 권유",
   invite_face: "대면 권유",
+  bonus: "보너스 점수",
   adjust: "조정",
 };
 

@@ -21,7 +21,7 @@ import {
   sumPoints,
   todayKST,
 } from "./rules";
-import type { MonitorData, MonitorUser } from "./types";
+import type { HistoryKind, MonitorData, MonitorUser } from "./types";
 
 // ── 읽기 헬퍼 ───────────────────────────────────────────────
 
@@ -246,25 +246,26 @@ export async function recentLedger(store: Store, limit: number): Promise<LedgerE
 }
 
 /**
- * 요청 종류별 승인 기록, 각 종류별 최신순.
+ * 요청 종류별 승인 기록(+특별 보너스), 각 종류별 최신순.
  * 관리자가 아니면 null.
  */
 export async function requestHistory(
   store: Store,
   adminRawName: string
-): Promise<Record<RequestKind, LedgerEntry[]> | null> {
+): Promise<Record<HistoryKind, LedgerEntry[]> | null> {
   if (!(await requireAdmin(store, adminRawName))) return null;
 
   const ledger = await getLedger(store);
-  const grouped: Record<RequestKind, LedgerEntry[]> = {
+  const grouped: Record<HistoryKind, LedgerEntry[]> = {
     prayer: [],
     invite_remote: [],
     invite_face: [],
+    bonus: [],
   };
   for (const entry of ledger) {
-    if (isRequestKind(entry.kind)) grouped[entry.kind].push(entry);
+    if (isRequestKind(entry.kind) || entry.kind === "bonus") grouped[entry.kind].push(entry);
   }
-  for (const kind of Object.keys(grouped) as RequestKind[]) {
+  for (const kind of Object.keys(grouped) as HistoryKind[]) {
     grouped[kind].reverse();
   }
   return grouped;
@@ -275,6 +276,7 @@ export async function requestHistory(
 /**
  * 사용자별·날짜별 점수 현황. "모니터링" 또는 관리자만 볼 수 있다 — 아니면 null.
  * 개발용 조정(adjust)은 사용자/날짜 집계에서 빼고 전체 총점에만 반영한다.
+ * 특별 보너스(bonus)는 사람에게 배분하지 않고 별도 목록과 날짜별 bonus로만 보여준다.
  */
 export async function monitorData(
   store: Store,
@@ -299,10 +301,19 @@ export async function monitorData(
   }
 
   const userDayPoints = new Map<string, Map<string, number>>(); // 이름 → (날짜 → 점수)
-  const allDayPoints = new Map<string, { points: number; people: Set<string> }>();
+  const allDayPoints = new Map<string, { points: number; people: Set<string>; bonus: number }>();
+  const bonus: MonitorData["bonus"] = [];
 
   for (const entry of ledger) {
     if (entry.kind === "adjust") continue;
+    if (entry.kind === "bonus") {
+      const date = todayKST(new Date(entry.at));
+      bonus.push({ date, label: entry.target ?? "보너스", points: entry.points });
+      const all = allDayPoints.get(date) ?? { points: 0, people: new Set<string>(), bonus: 0 };
+      all.bonus += entry.points;
+      allDayPoints.set(date, all);
+      continue;
+    }
     const user = byName.get(entry.name);
     if (!user) continue; // 명단에서 빠진 이름의 기록은 조회 대상이 없다
     const date = todayKST(new Date(entry.at));
@@ -315,7 +326,7 @@ export async function monitorData(
     days.set(date, (days.get(date) ?? 0) + entry.points);
     userDayPoints.set(entry.name, days);
 
-    const all = allDayPoints.get(date) ?? { points: 0, people: new Set<string>() };
+    const all = allDayPoints.get(date) ?? { points: 0, people: new Set<string>(), bonus: 0 };
     all.points += entry.points;
     all.people.add(entry.name);
     allDayPoints.set(date, all);
@@ -332,10 +343,16 @@ export async function monitorData(
     (a, b) => b.total - a.total || a.name.localeCompare(b.name, "ko")
   );
   const days = [...allDayPoints]
-    .map(([date, v]) => ({ date, points: v.points, people: v.people.size }))
+    .map(([date, v]) => ({
+      date,
+      points: v.points,
+      people: v.people.size,
+      ...(v.bonus > 0 ? { bonus: v.bonus } : {}),
+    }))
     .sort((a, b) => b.date.localeCompare(a.date));
+  bonus.reverse(); // 장부는 오래된 순이므로 뒤집으면 최신순
 
-  return { today: todayKST(now), total: sumPoints(ledger), users, days };
+  return { today: todayKST(now), total: sumPoints(ledger), users, days, bonus };
 }
 
 // ── 백업/복원 ───────────────────────────────────────────────

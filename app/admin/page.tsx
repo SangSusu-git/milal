@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { api, getSavedName } from "@/lib/client";
 import { KIND_LABEL, REQUEST_POINTS, STAGE_INFO, STAGE_THRESHOLDS } from "@/lib/rules";
-import type { FieldState, LedgerEntry, PendingRequest, RequestKind, Stage } from "@/lib/types";
+import type { FieldState, HistoryKind, LedgerEntry, PendingRequest, RequestKind, Stage } from "@/lib/types";
 import WheatScene from "@/components/WheatScene";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -29,18 +29,21 @@ function fmtTime(iso: string): string {
 
 // 요청 종류별 배지 스타일 — 새 종류가 생기면 여기 한 곳만 추가하면 된다.
 // 이모지는 components/RequestButtons.tsx의 버튼과 동일하게 맞춘다.
-const KIND_BADGE: Record<RequestKind, { emoji: string; className: string }> = {
+const KIND_BADGE: Record<HistoryKind, { emoji: string; className: string }> = {
   prayer: { emoji: "🙏", className: "bg-violet-100 text-violet-700" },
   invite_remote: { emoji: "💬", className: "bg-blue-100 text-blue-700" },
   invite_face: { emoji: "🤝", className: "bg-green-100 text-green-700" },
+  bonus: { emoji: "🎁", className: "bg-rose-100 text-rose-700" },
 };
 
 const REQUEST_KIND_ORDER: RequestKind[] = ["prayer", "invite_remote", "invite_face"];
+// 승인 기록에는 요청 종류 뒤에 특별 보너스가 붙는다 (요청이 아니라 데이터로 넣는 항목)
+const HISTORY_KIND_ORDER: HistoryKind[] = [...REQUEST_KIND_ORDER, "bonus"];
 const STAGE_ORDER: Stage[] = [1, 2, 3, 4, 5];
 
-type RequestHistory = Record<RequestKind, LedgerEntry[]>;
+type RequestHistory = Record<HistoryKind, LedgerEntry[]>;
 
-const EMPTY_HISTORY: RequestHistory = { prayer: [], invite_remote: [], invite_face: [] };
+const EMPTY_HISTORY: RequestHistory = { prayer: [], invite_remote: [], invite_face: [], bonus: [] };
 
 export default function AdminPage() {
   const router = useRouter();
@@ -187,9 +190,9 @@ export default function AdminPage() {
     kind,
     rows: requests.filter((r) => r.kind === kind),
   })).filter(({ rows }) => rows.length > 0);
-  const historyByKind = REQUEST_KIND_ORDER.map((kind) => ({
+  const historyByKind = HISTORY_KIND_ORDER.map((kind) => ({
     kind,
-    rows: history[kind],
+    rows: history[kind] ?? [], // 구버전 응답에는 bonus가 없을 수 있다
     total: history[kind].reduce((acc, e) => acc + e.points, 0),
   })).filter(({ rows }) => rows.length > 0);
 
@@ -304,7 +307,14 @@ export default function AdminPage() {
                     <li key={`${entry.at}-${i}`} className="flex items-center justify-between gap-2 text-sm">
                       <span className="shrink-0 text-xs text-[var(--muted)]">{fmtTime(entry.at)}</span>
                       <span className="flex-1 truncate text-left">
-                        {entry.name} <span className="text-[var(--muted)]">→ {entry.target ?? "—"}</span>
+                        {kind === "bonus" ? (
+                          // 보너스는 사람이 아니라 프로그램 설명이 주체다
+                          entry.target ?? "보너스"
+                        ) : (
+                          <>
+                            {entry.name} <span className="text-[var(--muted)]">→ {entry.target ?? "—"}</span>
+                          </>
+                        )}
                       </span>
                       <span className="shrink-0 font-bold tabular-nums text-[var(--wheat-deep)]">+{entry.points}</span>
                     </li>

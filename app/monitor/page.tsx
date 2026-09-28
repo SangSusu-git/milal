@@ -38,6 +38,33 @@ function dayRows(u: MonitorUser) {
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
+/**
+ * 특별 보너스 카드 — 사람에게 배분되지 않고 총점에만 더해지는 점수.
+ * 화면 맨 아래에 둔다 (항목이 없으면 아예 그리지 않는다).
+ */
+function BonusCard({ bonus }: { bonus: MonitorData["bonus"] | undefined }) {
+  if (!bonus || bonus.length === 0) return null;
+  const sum = bonus.reduce((acc, b) => acc + b.points, 0);
+  return (
+    <section className="card border-rose-200 p-4">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-sm font-bold text-rose-700">🎁 특별 점수</h2>
+        <p className="text-sm font-black tabular-nums text-rose-700">+{sum}</p>
+      </div>
+      <ul className="mt-2 divide-y divide-[rgba(124,74,45,0.06)]">
+        {bonus.map((b, i) => (
+          <li key={i} className="flex items-center gap-2 py-2 text-sm">
+            <span className="w-16 shrink-0 text-xs text-[var(--muted)]">{formatDate(b.date)}</span>
+            <span className="min-w-0 flex-1 truncate">{b.label}</span>
+            <span className="shrink-0 font-semibold tabular-nums text-rose-700">+{b.points}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-[var(--muted)]">사람별 점수에는 들어가지 않고 전체 누적에만 더해져요</p>
+    </section>
+  );
+}
+
 /** "2026-09-05" → "9/5 (토)" */
 function formatDate(date: string): string {
   const d = new Date(`${date}T12:00:00+09:00`);
@@ -197,7 +224,14 @@ export default function MonitorPage() {
               <ul className="mt-2 divide-y divide-[rgba(124,74,45,0.06)]">
                 {data.days.map((d) => (
                   <li key={d.date} className="flex items-center justify-between py-2 text-sm">
-                    <span>{formatDate(d.date)}</span>
+                    <span>
+                      {formatDate(d.date)}
+                      {d.bonus ? (
+                        <span className="ml-1.5 rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+                          🎁 +{d.bonus}
+                        </span>
+                      ) : null}
+                    </span>
                     <span className="text-xs text-[var(--muted)]">{d.people}명 참여</span>
                     <span className="font-bold tabular-nums text-[var(--wheat-deep)]">+{d.points}점</span>
                   </li>
@@ -205,6 +239,7 @@ export default function MonitorPage() {
               </ul>
             )}
           </section>
+          <BonusCard bonus={data.bonus} />
         </>
       ) : (
         <section className="flex flex-col gap-2">
@@ -253,6 +288,7 @@ export default function MonitorPage() {
             </details>
           ))}
           <p className="px-1 pt-1 text-xs text-[var(--muted)]">이름을 누르면 상세 기록이 열려요</p>
+          <BonusCard bonus={data.bonus} />
         </section>
       )}
     </main>

@@ -1,7 +1,9 @@
 export type CheckKind = "bible" | "resolve";
 export type RequestKind = "prayer" | "invite_remote" | "invite_face";
-/** adjust는 개발용 점수 조정에만 쓰인다. */
-export type LedgerKind = CheckKind | RequestKind | "adjust";
+/** adjust는 개발용 점수 조정, bonus는 특별 프로그램 보너스(관리자가 데이터로 넣는다). */
+export type LedgerKind = CheckKind | RequestKind | "bonus" | "adjust";
+/** 관리자 승인 기록에 종류별로 묶여 보이는 항목 */
+export type HistoryKind = RequestKind | "bonus";
 export type Stage = 1 | 2 | 3 | 4 | 5;
 
 export interface Member {
@@ -33,7 +35,7 @@ export interface LedgerEntry {
   name: string;
   kind: LedgerKind;
   points: number;
-  /** 요청 승인 항목에서만 설정된다 — 요청 당시의 대상. 일일 체크·조정 항목에는 없다. */
+  /** 요청 승인 항목은 요청 당시의 대상, 보너스 항목은 설명(예: "추석 프로그램 · 1회차"). 일일 체크·조정 항목에는 없다. */
   target?: string;
 }
 
@@ -65,8 +67,10 @@ export interface MonitorData {
   total: number;
   /** 총점 내림차순, 같으면 이름순. 명단 전원 포함 (0점도) */
   users: MonitorUser[];
-  /** 날짜(KST)별 전체 획득 점수와 참여 인원, 최신 날짜부터 */
-  days: { date: string; points: number; people: number }[];
+  /** 날짜(KST)별 구성원 획득 점수와 참여 인원, 최신 날짜부터. bonus는 그날 들어온 특별 점수 */
+  days: { date: string; points: number; people: number; bonus?: number }[];
+  /** 특별 보너스 항목, 최신순. 사람에게 배분되지 않고 총점에만 더해진다 */
+  bonus: { date: string; label: string; points: number }[];
 }
 
 export interface FieldState {
