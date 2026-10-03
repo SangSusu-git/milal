@@ -132,7 +132,7 @@ export default function FieldPage() {
     setBusyCheck(null);
     if (status === 200) {
       setState(data as FieldState);
-      showFloating("+1");
+      showFloating(`+${(data as FieldState).checkPoints}`);
     } else if (status === 409) {
       showToast("오늘은 이미 체크했어요. 내일 다시!");
       load(name);
@@ -219,6 +219,19 @@ export default function FieldPage() {
         </div>
       </header>
 
+      {state.checkPoints > 1 && (
+        // 날짜 한정 이벤트 안내 — 이벤트 날에만 보인다
+        <div
+          role="status"
+          className="fade-up flex items-center justify-center gap-2 rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-bold text-white shadow-lg"
+        >
+          <span className="rounded-full bg-[var(--wheat)] px-2 py-0.5 text-xs font-black text-[var(--ink)]">
+            x{state.checkPoints} 이벤트
+          </span>
+          <span className="text-xs font-medium">오늘만 성경읽기·다짐 +{state.checkPoints}점</span>
+        </div>
+      )}
+
       <section className="card overflow-hidden p-0">
         {/* 그림 영역 — 게이지·이펙트는 이 안에서만 겹친다 (아래 캡션 줄은 침범 안 함) */}
         <div className="relative">
@@ -247,6 +260,7 @@ export default function FieldPage() {
         resolve={state.me.resolve}
         busy={busyCheck}
         myPoints={state.me.points}
+        points={state.checkPoints}
         onCheck={onCheck}
       />
 

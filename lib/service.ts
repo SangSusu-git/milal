@@ -12,7 +12,7 @@ import type {
 } from "./types";
 import { ensureMembers, findMember } from "./members";
 import {
-  CHECK_POINTS,
+  checkPointsOn,
   MONITOR_NAME,
   REQUEST_POINTS,
   isCheckKind,
@@ -99,6 +99,7 @@ export async function getState(
     today,
     total,
     stage: stageOf(total),
+    checkPoints: checkPointsOn(today),
     me: {
       name: me.name,
       isAdmin: me.isAdmin,
@@ -142,7 +143,7 @@ export async function check(
     at: now.toISOString(),
     name: me.name,
     kind,
-    points: CHECK_POINTS,
+    points: checkPointsOn(today),
   });
   return { ok: true };
 }

@@ -10,6 +10,20 @@ export const MAX_POINTS = 700;
 export const CHECK_POINTS = 1;
 
 /**
+ * 날짜(KST, YYYY-MM-DD) 한정 체크 점수 이벤트.
+ * 그날의 성경읽기·다짐 체크만 이 점수로 적립된다 — 요청(기도부탁·권유) 점수는 그대로.
+ * 날짜가 지나면 자동으로 기본 점수로 돌아오므로 따로 되돌릴 필요가 없다.
+ */
+export const CHECK_POINT_EVENTS: Record<string, number> = {
+  "2026-10-03": 3,
+};
+
+/** 그 날짜(KST)의 체크 한 번당 점수 */
+export function checkPointsOn(date: string): number {
+  return CHECK_POINT_EVENTS[date] ?? CHECK_POINTS;
+}
+
+/**
  * 히든 조회 전용 이름. 명단에 없고 명단 수에도 안 잡히며,
  * 이 이름으로 들어오면 밭 대신 점수 현황 화면을 본다.
  */

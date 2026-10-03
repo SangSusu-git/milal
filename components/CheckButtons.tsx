@@ -5,6 +5,8 @@ type Props = {
   resolve: boolean;
   busy: CheckKind | null;
   myPoints: number;
+  /** 오늘 체크 한 번당 점수 (이벤트 날에는 1보다 크다) */
+  points: number;
   onCheck: (kind: CheckKind) => void;
 };
 
@@ -13,7 +15,7 @@ const ITEMS: { kind: CheckKind; icon: string; label: string }[] = [
   { kind: "resolve", icon: "✅", label: "다짐 지켰어요" },
 ];
 
-export default function CheckButtons({ bible, resolve, busy, myPoints, onCheck }: Props) {
+export default function CheckButtons({ bible, resolve, busy, myPoints, points, onCheck }: Props) {
   const done = { bible, resolve };
   return (
     <section className="card p-5">
@@ -36,7 +38,7 @@ export default function CheckButtons({ bible, resolve, busy, myPoints, onCheck }
             >
               <span className="text-2xl">{icon}</span>
               <span>{label}</span>
-              <span className="text-xs font-semibold opacity-80">{isDone ? "내일 다시" : "+1"}</span>
+              <span className="text-xs font-semibold opacity-80">{isDone ? "내일 다시" : `+${points}`}</span>
             </button>
           );
         })}

@@ -55,3 +55,34 @@ describe("특별 보너스", () => {
     expect(d.users.reduce((a, u) => a + u.total, 0)).toBe(1);
   });
 });
+
+describe("날짜 한정 체크 점수 이벤트", () => {
+  // KST 2026-10-03 23:59 / 2026-10-04 00:00
+  const EVENT_LAST = new Date("2026-10-03T14:59:00Z");
+  const NEXT_DAY = new Date("2026-10-03T15:00:00Z");
+
+  it("이벤트 날에는 성경·다짐이 +3, 화면용 checkPoints도 3", async () => {
+    const store = createMemoryStore();
+    await check(store, USER, "bible", EVENT_LAST);
+    await check(store, USER, "resolve", EVENT_LAST);
+    const s = (await getState(store, USER, EVENT_LAST))!;
+    expect(s.total).toBe(6);
+    expect(s.checkPoints).toBe(3);
+  });
+
+  it("자정(KST)이 지나면 다시 +1", async () => {
+    const store = createMemoryStore();
+    await check(store, USER, "bible", EVENT_LAST);
+    await check(store, USER, "bible", NEXT_DAY);
+    const s = (await getState(store, USER, NEXT_DAY))!;
+    expect(s.total).toBe(4);
+    expect(s.checkPoints).toBe(1);
+  });
+
+  it("평소 날짜는 +1", async () => {
+    const store = createMemoryStore();
+    await check(store, USER, "bible", D24);
+    expect((await getState(store, USER, D24))!.checkPoints).toBe(1);
+    expect((await getState(store, USER, D24))!.total).toBe(1);
+  });
+});

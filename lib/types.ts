@@ -77,6 +77,8 @@ export interface FieldState {
   today: string;
   total: number;
   stage: Stage;
+  /** 오늘 체크(성경읽기·다짐) 한 번당 점수 — 평소 1, 이벤트 날에는 더 크다 */
+  checkPoints: number;
   me: {
     name: string;
     isAdmin: boolean;
