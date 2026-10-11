@@ -18,9 +18,21 @@ export const CHECK_POINT_EVENTS: Record<string, number> = {
   "2026-10-03": 3,
 };
 
-/** 그 날짜(KST)의 체크 한 번당 점수 */
-export function checkPointsOn(date: string): number {
+/**
+ * 그 날짜(KST)의 체크 한 번당 점수.
+ * 기도모임은 이벤트 배율을 받지 않고 항상 기본 점수다.
+ */
+export function checkPointsOn(date: string, kind: CheckKind = "bible"): number {
+  if (kind === "meeting") return CHECK_POINTS;
   return CHECK_POINT_EVENTS[date] ?? CHECK_POINTS;
+}
+
+/** 기도모임 체크가 열리는 첫 날 (KST). 이 날짜 전에는 버튼도 없고 서버도 거부한다. */
+export const MEETING_START_DATE = "2026-10-12";
+
+/** 그 날짜(KST)에 기도모임 체크가 열려 있는지 — 시작일 이후 매일 */
+export function isMeetingOpen(date: string): boolean {
+  return date >= MEETING_START_DATE; // YYYY-MM-DD는 문자열 비교로 날짜 순서가 맞다
 }
 
 /**
@@ -52,6 +64,7 @@ export const STAGE_INFO: Record<Stage, { title: string; caption: string }> = {
 export const KIND_LABEL: Record<LedgerKind, string> = {
   bible: "성경읽기",
   resolve: "다짐",
+  meeting: "기도모임",
   prayer: "기도부탁",
   invite_remote: "비대면 권유",
   invite_face: "대면 권유",
@@ -92,7 +105,7 @@ export function sumPoints(ledger: LedgerEntry[]): number {
 }
 
 export function isCheckKind(x: unknown): x is CheckKind {
-  return x === "bible" || x === "resolve";
+  return x === "bible" || x === "resolve" || x === "meeting";
 }
 
 export function isRequestKind(x: unknown): x is RequestKind {

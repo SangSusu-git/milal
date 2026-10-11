@@ -132,7 +132,8 @@ export default function FieldPage() {
     setBusyCheck(null);
     if (status === 200) {
       setState(data as FieldState);
-      showFloating(`+${(data as FieldState).checkPoints}`);
+      // 기도모임은 이벤트 배율을 받지 않으므로 항상 +1
+      showFloating(kind === "meeting" ? "+1" : `+${(data as FieldState).checkPoints}`);
     } else if (status === 409) {
       showToast("오늘은 이미 체크했어요. 내일 다시!");
       load(name);
@@ -258,6 +259,8 @@ export default function FieldPage() {
       <CheckButtons
         bible={state.me.bible}
         resolve={state.me.resolve}
+        meeting={state.me.meeting}
+        meetingOpen={state.meetingOpen}
         busy={busyCheck}
         myPoints={state.me.points}
         points={state.checkPoints}

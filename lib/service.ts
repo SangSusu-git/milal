@@ -13,6 +13,7 @@ import type {
 import { ensureMembers, findMember } from "./members";
 import {
   checkPointsOn,
+  isMeetingOpen,
   MONITOR_NAME,
   REQUEST_POINTS,
   isCheckKind,
@@ -25,7 +26,7 @@ import type { HistoryKind, MonitorData, MonitorUser } from "./types";
 
 // ── 읽기 헬퍼 ───────────────────────────────────────────────
 
-const EMPTY_DAY: DayCheck = { bible: false, resolve: false };
+const EMPTY_DAY: DayCheck = { bible: false, resolve: false, meeting: false };
 
 async function getChecks(store: Store, name: string): Promise<Checks> {
   return (await store.get<Checks>(`checks/${name}`)) ?? {};
@@ -90,7 +91,7 @@ export async function getState(
 
   const todayParticipants = new Set<string>();
   for (const entry of ledger) {
-    if (entry.kind !== "bible" && entry.kind !== "resolve") continue;
+    if (!isCheckKind(entry.kind)) continue;
     if (todayKST(new Date(entry.at)) !== today) continue;
     todayParticipants.add(entry.name);
   }
@@ -100,6 +101,7 @@ export async function getState(
     total,
     stage: stageOf(total),
     checkPoints: checkPointsOn(today),
+    meetingOpen: isMeetingOpen(today),
     me: {
       name: me.name,
       isAdmin: me.isAdmin,
@@ -107,6 +109,7 @@ export async function getState(
       points: myPoints,
       bible: myDay.bible,
       resolve: myDay.resolve,
+      meeting: myDay.meeting === true,
       pendingCount: requests.filter((r) => r.name === me.name).length,
     },
     memberCount: members.length,
@@ -118,7 +121,7 @@ export async function getState(
 
 export type CheckResult =
   | { ok: true }
-  | { ok: false; reason: "bad_kind" | "unknown_member" | "guest" | "already" };
+  | { ok: false; reason: "bad_kind" | "unknown_member" | "guest" | "not_open" | "already" };
 
 export async function check(
   store: Store,
@@ -133,6 +136,7 @@ export async function check(
   if (me.isGuest) return { ok: false, reason: "guest" };
 
   const today = todayKST(now);
+  if (kind === "meeting" && !isMeetingOpen(today)) return { ok: false, reason: "not_open" };
   const checks = await getChecks(store, me.name);
   const day = checks[today] ?? EMPTY_DAY;
   if (day[kind]) return { ok: false, reason: "already" };
@@ -143,7 +147,7 @@ export async function check(
     at: now.toISOString(),
     name: me.name,
     kind,
-    points: checkPointsOn(today),
+    points: checkPointsOn(today, kind),
   });
   return { ok: true };
 }
@@ -294,7 +298,7 @@ export async function monitorData(
   for (const m of members) {
     byName.set(m.name, {
       name: m.name,
-      byKind: { bible: 0, resolve: 0, prayer: 0, invite_remote: 0, invite_face: 0 },
+      byKind: { bible: 0, resolve: 0, meeting: 0, prayer: 0, invite_remote: 0, invite_face: 0 },
       total: 0,
       days: [],
       entries: [],

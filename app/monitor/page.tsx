@@ -12,10 +12,11 @@ const subscribe = () => () => {};
 const getHydrated = () => true;
 const getHydratedServer = () => false;
 
-const KINDS: (CheckKind | RequestKind)[] = ["bible", "resolve", "prayer", "invite_remote", "invite_face"];
+const KINDS: (CheckKind | RequestKind)[] = ["bible", "resolve", "meeting", "prayer", "invite_remote", "invite_face"];
 const KIND_EMOJI: Record<CheckKind | RequestKind, string> = {
   bible: "📖",
   resolve: "✅",
+  meeting: "🕯️",
   prayer: "🙏",
   invite_remote: "💬",
   invite_face: "🤝",
@@ -25,7 +26,7 @@ const KIND_EMOJI: Record<CheckKind | RequestKind, string> = {
 function dayRows(u: MonitorUser) {
   const byDate = new Map<string, Record<CheckKind | RequestKind, number>>();
   for (const e of u.entries) {
-    const row = byDate.get(e.date) ?? { bible: 0, resolve: 0, prayer: 0, invite_remote: 0, invite_face: 0 };
+    const row = byDate.get(e.date) ?? { bible: 0, resolve: 0, meeting: 0, prayer: 0, invite_remote: 0, invite_face: 0 };
     row[e.kind] += e.points;
     byDate.set(e.date, row);
   }
@@ -212,7 +213,7 @@ export default function MonitorPage() {
               </table>
             </div>
             <p className="mt-3 text-xs text-[var(--muted)]">
-              📖 성경읽기 · ✅ 다짐 지키기 · 🙏 기도부탁 · 💬 비대면 권유 · 🤝 대면 권유
+              📖 성경읽기 · ✅ 다짐 지키기 · 🕯️ 기도모임 · 🙏 기도부탁 · 💬 비대면 권유 · 🤝 대면 권유
             </p>
           </section>
 

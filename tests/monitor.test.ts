@@ -58,7 +58,7 @@ describe("monitorData", () => {
     const d = (await monitorData(store, MONITOR_NAME, DAY2))!;
     expect(d.total).toBe(6);
     const user = d.users.find((u) => u.name === USER)!;
-    expect(user.byKind).toEqual({ bible: 2, resolve: 1, prayer: 0, invite_remote: 0, invite_face: 0 });
+    expect(user.byKind).toEqual({ bible: 2, resolve: 1, meeting: 0, prayer: 0, invite_remote: 0, invite_face: 0 });
     expect(user.total).toBe(3);
     // 최신 날짜부터
     expect(user.days).toEqual([

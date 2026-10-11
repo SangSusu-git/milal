@@ -1,4 +1,4 @@
-export type CheckKind = "bible" | "resolve";
+export type CheckKind = "bible" | "resolve" | "meeting";
 export type RequestKind = "prayer" | "invite_remote" | "invite_face";
 /** adjust는 개발용 점수 조정, bonus는 특별 프로그램 보너스(관리자가 데이터로 넣는다). */
 export type LedgerKind = CheckKind | RequestKind | "bonus" | "adjust";
@@ -16,6 +16,8 @@ export interface Member {
 export interface DayCheck {
   bible: boolean;
   resolve: boolean;
+  /** 기도모임 참석. 기도모임이 생기기 전에 저장된 날짜에는 키가 없다 — 없으면 false로 본다. */
+  meeting?: boolean;
 }
 
 /** 날짜(YYYY-MM-DD, KST) → 그날의 체크 */
@@ -79,6 +81,8 @@ export interface FieldState {
   stage: Stage;
   /** 오늘 체크(성경읽기·다짐) 한 번당 점수 — 평소 1, 이벤트 날에는 더 크다 */
   checkPoints: number;
+  /** 기도모임 체크가 열렸는지 (시작일 이후) — false면 버튼을 그리지 않는다 */
+  meetingOpen: boolean;
   me: {
     name: string;
     isAdmin: boolean;
@@ -86,6 +90,7 @@ export interface FieldState {
     points: number;
     bible: boolean;
     resolve: boolean;
+    meeting: boolean;
     pendingCount: number;
   };
   memberCount: number;
