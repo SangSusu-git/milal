@@ -1,4 +1,5 @@
 import type { CheckKind } from "@/lib/types";
+import { MEETING_POINTS } from "@/lib/rules";
 
 type Props = {
   bible: boolean;
@@ -44,7 +45,7 @@ export default function CheckButtons({ bible, resolve, meeting, meetingOpen, bus
             >
               <span className="text-2xl">{icon}</span>
               <span className="break-keep">{label}</span>
-              <span className="text-xs font-semibold opacity-80">{isDone ? "내일 다시" : `+${kind === "meeting" ? 1 : points}`}</span>
+              <span className="text-xs font-semibold opacity-80">{isDone ? "내일 다시" : `+${kind === "meeting" ? MEETING_POINTS : points}`}</span>
             </button>
           );
         })}

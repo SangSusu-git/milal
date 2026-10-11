@@ -8,6 +8,8 @@ import type {
 
 export const MAX_POINTS = 700;
 export const CHECK_POINTS = 1;
+/** 기도모임 체크 한 번당 점수 — 성경·다짐과 달리 이벤트 배율을 받지 않는다 */
+export const MEETING_POINTS = 2;
 
 /**
  * 날짜(KST, YYYY-MM-DD) 한정 체크 점수 이벤트.
@@ -20,10 +22,10 @@ export const CHECK_POINT_EVENTS: Record<string, number> = {
 
 /**
  * 그 날짜(KST)의 체크 한 번당 점수.
- * 기도모임은 이벤트 배율을 받지 않고 항상 기본 점수다.
+ * 기도모임은 이벤트 배율을 받지 않고 항상 MEETING_POINTS다.
  */
 export function checkPointsOn(date: string, kind: CheckKind = "bible"): number {
-  if (kind === "meeting") return CHECK_POINTS;
+  if (kind === "meeting") return MEETING_POINTS;
   return CHECK_POINT_EVENTS[date] ?? CHECK_POINTS;
 }
 

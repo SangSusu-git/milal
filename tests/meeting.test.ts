@@ -29,18 +29,18 @@ describe("기도모임 체크", () => {
     const s = (await getState(store, USER, START))!;
     expect(s.meetingOpen).toBe(true);
     expect(s.me.meeting).toBe(true);
-    expect(s.total).toBe(1);
+    expect(s.total).toBe(2);
     expect(await check(store, USER, "meeting", LATER)).toEqual({ ok: true });
-    expect((await getState(store, USER, LATER))!.total).toBe(2);
+    expect((await getState(store, USER, LATER))!.total).toBe(4);
   });
 
-  it("성경·다짐과 독립 — 셋 다 체크하면 하루 +3, 오늘 참여에 센다", async () => {
+  it("성경·다짐과 독립 — 셋 다 체크하면 하루 +4, 오늘 참여에 센다", async () => {
     const store = createMemoryStore();
     await check(store, USER, "bible", LATER);
     await check(store, USER, "resolve", LATER);
     await check(store, USER, "meeting", LATER);
     const s = (await getState(store, USER, LATER))!;
-    expect(s.total).toBe(3);
+    expect(s.total).toBe(4);
     expect(s.todayCount).toBe(1);
   });
 
@@ -50,13 +50,13 @@ describe("기도모임 체크", () => {
     expect((await getState(store, ADMIN, LATER))!.todayCount).toBe(1);
   });
 
-  it("x3 이벤트 날에도 기도모임은 +1", async () => {
+  it("x3 이벤트 날에도 기도모임은 +2 고정", async () => {
     const store = createMemoryStore();
     const EVENT = new Date("2026-10-03T10:00:00Z"); // 이벤트 날이지만 시작일 전 → 거부
     expect(await check(store, USER, "meeting", EVENT)).toEqual({ ok: false, reason: "not_open" });
     // 시작일 이후 날짜에 이벤트를 흉내: checkPointsOn 자체가 meeting은 항상 1
     const { checkPointsOn } = await import("@/lib/rules");
-    expect(checkPointsOn("2026-10-03", "meeting")).toBe(1);
+    expect(checkPointsOn("2026-10-03", "meeting")).toBe(2);
     expect(checkPointsOn("2026-10-03", "bible")).toBe(3);
   });
 
@@ -83,8 +83,8 @@ describe("기도모임 체크", () => {
     await check(store, USER, "meeting", LATER);
     const d = (await monitorData(store, MONITOR_NAME, LATER))!;
     const u = d.users.find((x) => x.name === USER)!;
-    expect(u.byKind.meeting).toBe(1);
-    expect(u.total).toBe(1);
-    expect(d.days).toEqual([{ date: "2026-10-13", points: 1, people: 1 }]);
+    expect(u.byKind.meeting).toBe(2);
+    expect(u.total).toBe(2);
+    expect(d.days).toEqual([{ date: "2026-10-13", points: 2, people: 1 }]);
   });
 });

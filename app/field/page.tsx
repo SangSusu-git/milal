@@ -11,7 +11,7 @@ import CheckButtons from "@/components/CheckButtons";
 import RequestButtons from "@/components/RequestButtons";
 import RequestDialog from "@/components/RequestDialog";
 import { api, clearName, getSavedName } from "@/lib/client";
-import { MONITOR_NAME } from "@/lib/rules";
+import { MEETING_POINTS, MONITOR_NAME } from "@/lib/rules";
 import type { CheckKind, FieldState, RequestKind } from "@/lib/types";
 
 // 켜둔 화면은 15초마다, 다른 앱에서 돌아오면 즉시 갱신한다.
@@ -132,8 +132,8 @@ export default function FieldPage() {
     setBusyCheck(null);
     if (status === 200) {
       setState(data as FieldState);
-      // 기도모임은 이벤트 배율을 받지 않으므로 항상 +1
-      showFloating(kind === "meeting" ? "+1" : `+${(data as FieldState).checkPoints}`);
+      // 기도모임은 이벤트 배율을 받지 않으므로 항상 MEETING_POINTS
+      showFloating(kind === "meeting" ? `+${MEETING_POINTS}` : `+${(data as FieldState).checkPoints}`);
     } else if (status === 409) {
       showToast("오늘은 이미 체크했어요. 내일 다시!");
       load(name);
